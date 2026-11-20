@@ -1,0 +1,17 @@
+{
+  "name": "Hinano Coffee",
+  "short_name": "Hinano Coffee",
+  "description": "焙煎して、ブレンドして、店を育てる。10年間のカフェ経営シミュレーション",
+  "lang": "ja",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF8F0",
+  "theme_color": "#6F4E37",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
