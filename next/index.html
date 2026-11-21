@@ -868,7 +868,7 @@ body{font-family:'Segoe UI','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-seri
         </div>
         <div class="report-costs" id="reportCosts"></div>
         <div class="report-points-title">今回のポイント</div>
-        <ul class="report-points" id="reportPoints"><li>「次の週へ」を押すと、ここに結果と理由が出ます。</li></ul>
+        <ul class="report-points" id="reportPoints"><li>店を開けて1週たつと、ここに結果と理由が出ます。</li></ul>
       </div>
 
       <!-- 店の状態 -->
@@ -1054,7 +1054,7 @@ body{font-family:'Segoe UI','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-seri
       </div>
       <div class="panel">
         <div class="panel-title">📖 遊び方</div>
-        <div class="bean-info" style="margin-bottom:0" id="hintArea">① 「コーヒー」タブで豆を仕入れて焙煎する<br>② ブレンドを作ってメニューに載せる<br>③ 「店舗」タブで「今週の取り組み」を1つ選ぶ（天気予報も参考に）<br>④ 下の「次の週へ」で営業する<br>⑤ レポートとアドバイスを見て、次の手を考える<br><br>季節や流行の味に合わせると売上が伸びます。店が大きくなると家賃も上がるので、人気と品質を保ちましょう。10年後の所持金（移転した店と道具の値打ちも半分数える）でランクが決まります。</div>
+        <div class="bean-info" style="margin-bottom:0" id="hintArea">① 「コーヒー」タブで豆を仕入れて焙煎する<br>② ブレンドを作ってメニューに載せる<br>③ 「店舗」タブで「今週の取り組み」を1つ選ぶ（変えるまで毎週続く）<br>④ 下の「▶ 開店する」で時間が進み、お客さんが来る（タブを開いているあいだは止まる）<br>⑤ レポートとアドバイスを見て、次の手を考える<br><br>季節や流行の味に合わせると売上が伸びます。店が大きくなると家賃も上がるので、人気と品質を保ちましょう。10年後の所持金（移転した店と道具の値打ちも半分数える）でランクが決まります。</div>
       </div>
     </div>
   </div>
@@ -3123,10 +3123,13 @@ function dtStep(){
     DIO.visitors.forEach(function(v){
       if(v.ph===0){v.x=Math.max(dx2,v.x-1.5);if(v.x<=dx2) v.ph=1}
       else if(v.ph===1){var py=v.y;v.y=Math.max(ay2,v.y-2);if(py>L2.y1-2&&v.y<=L2.y1-2) DIO.enterGlow=6;if(v.y<=ay2){v.ph=2;
-        var q=DIO.visitors.filter(function(o){return o!==v&&(o.ph===2||o.ph===3)}).length;v.rx=rx0+Math.min(q,3)*11}}
+        // 列の空いているいちばん前に並ぶ（前の人が抜けた場所に、後ろの人と重ならないように）
+        var used={};DIO.visitors.forEach(function(o){if(o!==v&&(o.ph===2||o.ph===3)) used[o.slot]=1});
+        v.slot=0;while(used[v.slot]&&v.slot<5) v.slot++;v.rx=rx0+v.slot*11}}
       else if(v.ph===2){v.x+=Math.max(-2,Math.min(2,v.rx-v.x));if(Math.abs(v.x-v.rx)<0.5){v.x=v.rx;v.ph=3;v.wait=16;flowOnOrder(v)}}
       else if(v.ph===3){if(--v.wait<=0) v.ph=4}
-      else if(v.ph===4){v.x+=Math.max(-2,Math.min(2,dx2-v.x));if(Math.abs(v.x-dx2)<0.5){v.x=dx2;v.ph=5}}
+      else if(v.ph===4){if(v.y<ay2+7) v.y++; // 帰りは列の1つ手前を通る
+        v.x+=Math.max(-2,Math.min(2,dx2-v.x));if(Math.abs(v.x-dx2)<0.5){v.x=dx2;v.ph=5}}
       else if(v.ph===5){var py5=v.y;v.y=Math.min(oy2,v.y+2);if(py5<L2.y1+2&&v.y>=L2.y1+2) flowOnLeave(v);if(v.y>=oy2) v.ph=6}
       else{v.x+=1.2;if(v.x>W+12) v.gone=true}
     });
@@ -3151,7 +3154,8 @@ function dioResize(){
     // 時間が流れる店（第8回）：店が主役。幅に Lv.1 の店が入り、高さは下の欄とボタンを残して収まる一番大きい倍率。
     // それより広い店は、横にずらして眺める（絵を店の幅まで広げ、真ん中を見せる）
     else{var avail=Math.max(160,(dom.screenGame.clientHeight||window.innerHeight)-flowReservedH());
-      var kk=Math.max(1,Math.min(Math.floor(w*dpr/(2*140)),Math.floor(avail*dpr/(2*DT.rows))));DIO.scale=2*kk/dpr}
+      // 幅は Lv.1 の店が少しはみ出す（画面の1.25倍まで）ところまで許す。高さが空いて店が小さく見えるより、横にずらせる方がよい
+      var kk=Math.max(1,Math.min(Math.floor(w*1.25*dpr/(2*140)),Math.floor(avail*dpr/(2*DT.rows))));DIO.scale=2*kk/dpr}
   }else{DIO.res=1;DIO.scale=window.innerWidth<=480?2:3;DIO.rows=62}
   var px=DIO.scale/DIO.res,cw=Math.ceil(w/px);
   if(DIO.top&&!onTitle&&state){var cols=DT_MAP[Math.max(1,Math.min(5,state.shopLevel||1))][0].length;cw=Math.max(cw,(cols*DT.cw+40)*DIO.res)}
@@ -3161,8 +3165,13 @@ function dioResize(){
   DIO.cv.width=cw;DIO.cv.height=DIO.rows*DIO.res;
   DIO.cv.style.width=(cw*px)+'px';DIO.cv.style.height=Math.round(DIO.rows*DIO.scale)+'px';
   DIO.ctx=DIO.cv.getContext('2d');DIO.ctx.setTransform(DIO.res,0,0,DIO.res,0,0);DIO.ctx.imageSmoothingEnabled=false;
-  if(!onTitle&&DIO.top) host.scrollLeft=Math.max(0,(cw*px-host.clientWidth)/2);
+  if(!onTitle&&DIO.top){host.scrollLeft=Math.max(0,(cw*px-host.clientWidth)/2);dioPinLabels()}
   dioDraw();
+}
+// 店を横にずらしても、Lv と Tier の札は画面の端に残す
+function dioPinLabels(){
+  var t='translateX('+dom.shopExterior.scrollLeft+'px)';
+  dom.shopExterior.querySelectorAll('.shop-xp-bar,.shop-tier-label').forEach(function(el){el.style.transform=t});
 }
 // 箱庭の大きさを決め直す必要があるか（幅・画面の高さ・店のレベルが変わったとき）
 function dioSizeKey(){
@@ -3221,6 +3230,8 @@ function dioInit(){
   dioResize();
   window.addEventListener('resize',dioResize);
   if(DIO.top) dom.shopExterior.addEventListener('click',function(){if(!dom.shopExterior.onclick) dioZoomOpen()});
+  // 店を横にずらしても、Lv と Tier の札は画面の端に残す
+  dom.shopExterior.addEventListener('scroll',dioPinLabels,{passive:true});
   setInterval(function(){
     if(document.hidden||!(dom.screenGame.classList.contains('active')||dom.screenTitle.classList.contains('active'))) return;
     if(DIO.sizeKey!==dioSizeKey()) dioResize();
@@ -3328,7 +3339,7 @@ function renderWeekSum(){
   var f=getFocusOption(state.focus);
   var h='<div class="week-sum-row">'+
     '<div class="week-sum-chip"><b>'+fmt(cups)+'杯</b><span>在庫（約'+(Math.round(wk*10)/10)+'週分・見込み客'+dm+'人）</span></div>'+
-    '<div class="week-sum-chip"><b>'+fmt(state.money)+'円</b><span>所持金'+(state.week>0?'（先週 '+(prof>=0?'+':'')+fmt(prof)+'円）':'')+'</span></div>'+
+    '<div class="week-sum-chip"><b>'+fmt(flowShownMoney())+'円</b><span>所持金'+(state.week>0&&!FLOW.wk?'（先週 '+(prof>=0?'+':'')+fmt(prof)+'円）':'')+'</span></div>'+
     '<div class="week-sum-chip"><b>'+f.icon+' '+f.name+'</b><span>今週の取り組み</span></div></div>';
   if(getActiveMenuItems().length===0) h+='<div class="week-warn bad">🍽️ 店頭メニューが空です。焙煎済み'+fmt(cups)+'杯／販売メニュー0品。<button data-go="coffee">メニューへ</button></div>';
   if(cups<dm) h+='<div class="week-warn bad">⚠️ 在庫が来週の見込み客より少なく、品切れになります。<button data-go="coffee">焙煎へ</button></div>';
@@ -4488,7 +4499,7 @@ function renderFocus(){
     return '<button class="focus-opt'+(cur===id?' selected':'')+(short?' short':'')+'" data-focus="'+id+'"'+(short?' disabled':'')+'>'+
       '<span class="focus-icon">'+o.icon+'</span><span class="focus-body"><span class="focus-name">'+o.name+'</span><span class="focus-desc">'+o.desc+'</span></span>'+
       '<span class="focus-cost">'+(o.cost?fmt(o.cost)+'円':'無料')+'</span></button>';
-  }).join('')+'<div class="game-note">「次の週へ」で1週進めるときだけ使われます。まとめて進めると重点はなしになります。接客レベル：'+(state.service||0)+'/'+SERVICE_MAX+'</div>';
+  }).join('')+'<div class="game-note">選んだ取り組みは、変えるまで毎週続きます（費用も毎週かかります）。効くのは次の週から。接客レベル：'+(state.service||0)+'/'+SERVICE_MAX+'</div>';
 }
 function selectFocus(id){
   var o=getFocusOption(id);
@@ -5058,7 +5069,7 @@ function renderReport(a){
     dom.dashRevenue.textContent='0円';dom.dashCost.textContent='0円';dom.dashCustomers.textContent='0人';
     dom.dashMoney.textContent=fmt(state.money)+'円';
     dom.reportCosts.innerHTML='';
-    dom.reportPoints.innerHTML='<li>「次の週へ」を押すと、ここに結果と理由が出ます。</li>';
+    dom.reportPoints.innerHTML='<li>店を開けて1週たつと、ここに結果と理由が出ます。</li>';
     return;
   }
   var endWeek=a.startWeek+a.weeks-1;
@@ -5068,7 +5079,7 @@ function renderReport(a){
   dom.dashRevenue.textContent=fmt(a.revenue)+'円';
   dom.dashCost.textContent=fmt(a.revenue+(a.subsidy||0)-a.profit)+'円';
   dom.dashCustomers.textContent=fmt(a.served)+'人';
-  dom.dashMoney.textContent=fmt(state.money)+'円';
+  dom.dashMoney.textContent=fmt(flowShownMoney())+'円';
   var rows=[['売上',a.revenue],['家賃',-a.rent],['光熱費',-a.utility],['人件費',-a.staff],['原価（豆・材料）',-a.bean]];
   if(a.retainer) rows.push(['顧問料',-a.retainer]);
   if(a.focusCost) rows.push(['今週の取り組み',-a.focusCost]);
@@ -5168,7 +5179,7 @@ function buildAdvice(){
   }
   list.sort(function(x,y){return y.pri-x.pri});
   list=list.slice(0,3);
-  if(list.length===0) list.push({cls:'good small',icon:'😊',tab:null,html:'<strong>順調です！</strong>このまま「次の週へ」で営業しましょう。'});
+  if(list.length===0) list.push({cls:'good small',icon:'😊',tab:null,html:'<strong>順調です！</strong>このまま営業を続けましょう。'});
   return list;
 }
 function renderAdvice(){
@@ -5435,7 +5446,7 @@ function titleRender(){
 }
 var TITLE_HOWTO=[
   {h:'1. 豆を焙煎する',b:'<p>「コーヒー」タブで生豆を選んで START。豆の色と、はじける音（1ハゼ・2ハゼ）を見て STOP します。</p><p>止めどきは豆ごとに違います。ぴったりで止めるほど品質が上がり、混ぜ方・火加減・冷まし方でさらに上積みできます。</p>'},
-  {h:'2. ブレンドを作って売る',b:'<p>焙煎した豆を混ぜてブレンドを作り、店頭メニュー（3枠）に載せます。</p><p>「店舗」タブで今週の取り組みを選んで「次の週へ」。季節・天気・流行の味に合うと、お客さんが増えます。</p>'},
+  {h:'2. ブレンドを作って売る',b:'<p>焙煎した豆を混ぜてブレンドを作り、店頭メニュー（3枠）に載せます。</p><p>「店舗」タブで今週の取り組みを選び、「▶ 開店する」で時間を進めます。季節・天気・流行の味に合うと、お客さんが増えます。</p>'},
   {h:'3. 10年で店を育てる',b:'<p>人気が上がると店のレベルが上がり、駅前や大通りへ移転もできます。家賃やスタッフの給料にも気をつけて。</p><p>年に1回の大会で勝つとブランド効果がつきます。10年後の所持金と店・道具の値打ちでランクが決まります。</p>'}
 ];
 function titleSheetOpen(kind){
@@ -5533,8 +5544,9 @@ function flowTick(){
 // 週の初め：いつもの1週の計算（advanceWeeks(1) と同じ順）。所持金・在庫はここで決まり、見せ方だけを1週かけて進める
 function flowWeekBegin(){
   if(state.trademark.pendingPay){FLOW.user=true;flowLine('™️ 商標の追加費用を払うか、放棄してください（挑戦タブ）','neg');return false}
-  var m0=state.money,pop0=state.popularity,menu=getActiveMenuItems().map(function(it){return{name:it.name,price:it.price,flavors:it.flavors,quality:it.quality}});
+  var m0=state.money,pop0=state.popularity,agg=newReportAgg(state.week),menu=getActiveMenuItems().map(function(it){return{name:it.name,price:it.price,flavors:it.flavors,quality:it.quality}});
   simulateWeek(false,state.focus);
+  addToReportAgg(agg,state.lastReport);
   var bankrupt=false;
   if(state.money<0){
     state.cashShortWeeks++;
@@ -5545,7 +5557,7 @@ function flowWeekBegin(){
     state.cashShortWeeks=0;
   }
   var lr=state.lastReport||{};
-  FLOW.wk={m0:m0,dm:state.money-m0,pop0:pop0,menu:menu,sales:state.lastSalesBreakdown||{},
+  FLOW.wk={m0:m0,dm:state.money-m0,pop0:pop0,agg:agg,menu:menu,sales:state.lastSalesBreakdown||{},
     served:lr.served!=null?lr.served:state.lastCustomers,demand:lr.demand||0,
     bankrupt:bankrupt,score:state.week>=C.TOTAL_WEEKS&&!state.scoreShown,events:eventQueue.splice(0)};
   FLOW.day=0;FLOW.ms=0;FLOW.spawn=600;DIO.segW=null;
@@ -5553,8 +5565,8 @@ function flowWeekBegin(){
   return true;
 }
 // 知らせ：判断が要るもの・被害・顧問・人物の登場は窓で出して止める。ほかは出来事の欄に1行
-function flowShowEvents(){
-  var w=FLOW.wk;if(!w||!w.events.length) return;
+function flowShowEvents(w){
+  w=w||FLOW.wk;if(!w||!w.events.length) return;
   w.events.forEach(function(e){
     var big=e.type==='negative'||e.face||e.html||LEGAL_EVENT_IDS.indexOf(e.id)>=0||e.id==='subsidy'||e.id==='trademark';
     if(big) eventQueue.push(e);else flowLine((e.icon&&e.title.indexOf(e.icon)<0?e.icon+' ':'')+e.title+(e.description?'：'+e.description:''),e.type==='negative'?'neg':'');
@@ -5565,7 +5577,8 @@ function flowShowEvents(){
 function flowWeekEnd(){
   var w=FLOW.wk;FLOW.wk=null;FLOW.day=0;FLOW.ms=0;
   if(!w) return;
-  if(w.events.length) flowShowEvents();
+  if(w.events.length) flowShowEvents(w);
+  state.reportAgg=w.agg; // 店舗タブの経営レポートは、見せ終わった週の分
   if(w.bankrupt){dom.bankruptModal.classList.add('active');updateUI();return}
   if(w.score){state.scoreShown=true;updateUI();showScoreScreen();return}
   var dateStr=fmtDate(state.week-1),p=state.lastProfit,dp=Math.round(state.popularity-w.pop0);
@@ -5644,11 +5657,16 @@ function flowRenderClock(){
   var w=FLOW.wk,p=w?Math.min(1,(FLOW.day+FLOW.ms/DAY_MS)/7):1;
   var wkNo=w?state.week-1:state.week,year=Math.floor(wkNo/C.WEEKS_PER_YEAR)+1,wy=(wkNo%C.WEEKS_PER_YEAR)+1;
   dom.statYear.textContent=year;dom.statMonth.textContent=Math.floor((wy-1)/4)+1;dom.statWeek.textContent=((wy-1)%4)+1;
-  dom.statMoney.textContent=fmt(Math.round(w?state.money-w.dm*(1-p):state.money));
+  dom.statMoney.textContent=fmt(flowShownMoney());
   if(!dom.flowDay){dom.flowDay=document.createElement('span');dom.flowDay.className='flow-day';dom.flowDay.innerHTML='<i></i><i></i><i></i><i></i><i></i><i></i><i></i>';
     dom.statWeek.parentNode.appendChild(dom.flowDay)}
   var d=w?FLOW.day:-1;
   for(var i=0;i<7;i++) dom.flowDay.children[i].classList.toggle('on',i<=d);
+}
+// 見せている所持金：週の途中は、その週の分を日ごとに少しずつ足した額
+function flowShownMoney(){
+  var w=FLOW.wk;if(!w) return state.money;
+  var p=Math.min(1,(FLOW.day+FLOW.ms/DAY_MS)/7);return Math.round(state.money-w.dm*(1-p));
 }
 function flowRenderPlay(why){
   var b=dom.btnPlay;if(!b) return;
@@ -5682,7 +5700,7 @@ function flowRenderInfo(){
 function openSheet(tab){
   switchTab(tab);
   dom.screenGame.classList.add('sheet-open');
-  flowSyncCmdH();
+  flowSyncCmdH();updateUI(); // 板の中の所持金などを、いま見せている日の分にそろえる
 }
 function closeSheet(){
   if(state.roasting||roastCooling) return; // 焙煎中は焙煎機を出したまま
@@ -5721,7 +5739,7 @@ function loadAndStart(){
     selectBean(state.selectedBean);renderRoastGear();flowReset();updateUI();updateBlendForm();switchTab('home');showScreen('game');
   }
 }
-function continueGame(){state.scoreShown=true;showScreen('game')}
+function continueGame(){state.scoreShown=true;FLOW.user=true;showScreen('game')}
 
 /* ===========================================
    初期化
@@ -5849,6 +5867,7 @@ function init(){
     if(dom.screenScore.classList.contains('active')){if(e.key==='Enter') continueGame();return}
     if(!dom.screenGame.classList.contains('active')) return;
     if(document.activeElement&&(document.activeElement.tagName==='INPUT')) return; // テキスト入力中はスキップ
+    if(e.key==='Escape'&&dom.screenGame.classList.contains('sheet-open')){closeSheet();return}
     if(e.key==='ArrowRight'||e.key==='p') flowToggle();
     if(currentTab!=='coffee') return;
     if(e.key===' '||e.key==='Enter'){e.preventDefault();if(roastCooling) addStir(14);else if(state.roasting) stopRoast();else startRoast()}
