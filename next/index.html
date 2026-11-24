@@ -1573,6 +1573,8 @@ function addXp(amount,reason,silent){
 }
 // 次の拡張工事（なければ null）
 function nextExpand(){return SHOP_LEVEL_TABLE[state.shopLevel]||null}
+// 店がその Lv だったときの、いまの週の家賃（開店支援の割引も込み）
+function rentAt(lv){var k=state.shopLevel;state.shopLevel=lv;var r=getRent();state.shopLevel=k;return r}
 function roomSeats(){var s=(LEVEL_EFFECTS[state.shopLevel]||LEVEL_EFFECTS[1]).seats;return state.expand?Math.floor(s/2):s}
 // 拡張できるか：理由の文（できるなら ''）
 function expandBlock(){
@@ -1858,6 +1860,7 @@ function showNextEvent(){
   dom.evtTitle.textContent=evt.title;
   dom.evtTitle.className='evt-title '+(evt.type==='negative'?'negative':'positive');
   if(evt.html) dom.evtBody.innerHTML=evt.html;else dom.evtBody.textContent=evt.description;
+  dom.evtBody.style.whiteSpace=evt.html?'':'pre-line'; // 本文の改行（\n）をそのまま出す
 
   // 比較ブロック構築
   var compareHtml='';
@@ -4031,11 +4034,11 @@ function renderExpand(){
     h+='<dl class="expand-grid"><dt>次</dt><dd>Lv.'+nx.level+'「'+SHOP_TIERS[nx.level-1].name+'」</dd>'+
       '<dt>席</dt><dd>1日'+cur.seats+' → '+le.seats+'</dd>'+
       '<dt>来てくれる人</dt><dd>×'+cur.customerMult+' → ×'+le.customerMult+'</dd>'+
-      '<dt>家賃</dt><dd>週 +'+fmt(C.RENT_PER_LEVEL)+'円</dd>'+
+      '<dt>家賃</dt><dd>週 '+fmt(getRent())+' → '+fmt(rentAt(nx.level))+'円</dd>'+
       '<dt>工事</dt><dd>'+fmt(nx.cost)+'円・'+nx.weeks+'週（そのあいだ席が半分）</dd>'+
       '<dt>実績</dt><dd'+(xpOk?'':' style="color:var(--red)"')+'>'+state.shopXp+' / '+nx.xpReq+'</dd>';
     // 工事のあとに手元に残るお金。固定費4週分より少ないと、豆を買えずに資金が詰まりやすい
-    var left=state.money-nx.cost,fixed4=4*(getRent()+C.RENT_PER_LEVEL+C.UTILITY+crewWages());
+    var left=state.money-nx.cost,fixed4=4*(rentAt(nx.level)+C.UTILITY+crewWages());
     if(left>=0) h+='<dt>工事のあと</dt><dd'+(left<fixed4?' style="color:var(--red)"':'')+'>手元 '+fmt(left)+'円'+(left<fixed4?'（少なめ。豆代と家賃に注意）':'')+'</dd>';
     h+='</dl>';
     h+='<button class="btn-action" id="btnExpand"'+(why?' disabled':'')+'><span>🏗️ 拡張工事をする</span><span class="action-cost">'+(why||fmt(nx.cost)+'円')+'</span></button>';
@@ -4174,7 +4177,7 @@ function rollWave(silent){
 }
 
 /* --- 常連の頼まれごと（相談 第9回 ⑥）---
-   8〜12週に1件、常連の誰かが「こんな一杯が飲みたい」と頼む。期限4週。店頭メニューで応えられたら、
+   10〜14週に1件、常連の誰かが「こんな一杯が飲みたい」と頼む。期限4週。店頭メニューで応えられたら、
    仲よくなり（忠誠+20）、実績+30・人気+2。間に合わなくても罰はない */
 var REQ_HINT={taste:'その味が1.0以上あるブレンドを作って、メニューに載せよう',cheap:'ブラジル多めのブレンドなら値段を抑えられます',best:'焙煎をていねいに（PERFECT）すると品質が上がります'};
 var REQ_TYPES=[
@@ -4201,7 +4204,7 @@ function updateRequest(silent,menu){
     if(!r||!d){state.req=null;return}
     if(reqMet(q,menu)){
       r.loyalty=Math.min(100,r.loyalty+20);state.popularity=Math.min(100,state.popularity+2);addXp(30,'req',silent);
-      state.req=null;state.reqNext=state.week+8+Math.floor(Math.random()*5);state.reqDone=(state.reqDone||0)+1;
+      state.req=null;state.reqNext=state.week+10+Math.floor(Math.random()*5);state.reqDone=(state.reqDone||0)+1;
       if(!silent){
         addLog('💬 '+d.icon+' '+d.name+'の頼みに応えました！「これこれ、こういうのが飲みたかった」（仲よし+20・人気+2・実績+30）','log-highlight');
         eventQueue.push({id:'req_done',title:'💬 頼みに応えた！',icon:d.icon,type:'positive',face:{regId:d.id,frame:FACE.LAUGH},
@@ -4210,14 +4213,14 @@ function updateRequest(silent,menu){
       return;
     }
     if(--q.weeksLeft<=0){
-      state.req=null;state.reqNext=state.week+8+Math.floor(Math.random()*5);
+      state.req=null;state.reqNext=state.week+10+Math.floor(Math.random()*5);
       if(!silent){addLog('💬 '+d.name+'「また今度でいいよ。気にしないで」（頼まれごとは期限切れ）','');
         eventQueue.push({id:'req_miss',title:'💬 '+d.name+'「また今度でいいよ」',icon:d.icon,type:'positive',description:'頼まれごとは期限が過ぎました（罰はありません）',effects:{},counterfactual:{},contracts:{}})}
     }
     return;
   }
   var act=getActiveRegulars();
-  if(!act.length||state.week<(state.reqNext||12)) return;
+  if(!act.length||state.week<(state.reqNext||16)) return;
   var r2=act[Math.floor(Math.random()*act.length)],d2=getRegData(r2.id);if(!d2) return;
   var tw=0;REQ_TYPES.forEach(function(t){tw+=t.w});var roll=Math.random()*tw,type='taste';
   for(var i=0;i<REQ_TYPES.length;i++){roll-=REQ_TYPES[i].w;if(roll<0){type=REQ_TYPES[i].id;break}}
@@ -4309,7 +4312,8 @@ function createBlend(){
     basePrice:calcBlendPrice(recipe), flavors:fl, tag:getTag(fl),
   });
   dom.blendName.value='';
-  if(getActiveMenuItems().length<3){state.blends[state.blends.length-1].onMenu=true;addLog('🧪 新ブレンド「'+name+'」を開発し、店頭メニューに載せました（メニュー管理で入れ替えられます）。','log-highlight')}
+  // メニュー枠（3）はブレンドの数で数える（単品は在庫があれば並ぶ）
+  if(countActiveBlends()<3){state.blends[state.blends.length-1].onMenu=true;addLog('🧪 新ブレンド「'+name+'」を開発し、店頭メニューに載せました（メニュー管理で入れ替えられます）。','log-highlight')}
   else addLog('🧪 新ブレンド「'+name+'」を開発！メニューが満席なので、メニュー管理で入れ替えて店頭に載せよう。','log-highlight');
   updateUI();updateBlendForm();
 }
@@ -5956,8 +5960,13 @@ function flowWeekBegin(){
 function flowShowEvents(w){
   w=w||FLOW.wk;if(!w||!w.events.length) return;
   w.events.forEach(function(e){
-    var big=e.type==='negative'||e.face||e.html||LEGAL_EVENT_IDS.indexOf(e.id)>=0||e.id==='subsidy'||e.id==='trademark';
-    if(big) eventQueue.push(e);else flowLine((e.icon&&e.title.indexOf(e.icon)<0?e.icon+' ':'')+e.title+(e.description?'：'+e.description:''),e.type==='negative'?'neg':'');
+    // よくある知らせ（風評・クレーム・取引先・助成金・顔のない被害）は、同じ種類の2回目までだけ窓で止めて説明し、
+    // 3回目からは出来事の欄に1行（ふだんの営業を何度も止めない）。人物の登場・判断が要るもの・節目は毎回止める
+    var routine=['reputation','complainer','supplier','subsidy','golfer','yacht','inspector'].indexOf(e.id)>=0||(!e.face&&!e.html&&e.id!=='trademark'&&e.type==='negative');
+    var seen=state.evtSeen=state.evtSeen||{},n=seen[e.id]=(seen[e.id]||0)+1;
+    var big=routine?n<=2:(e.type==='negative'||e.face||e.html||e.id==='trademark');
+    if(big) eventQueue.push(e);
+    else flowLine((e.icon&&e.title.indexOf(e.icon)<0?e.icon+' ':'')+e.title.replace(/（\d+年\d+月\d+週）/,'')+(e.description?'：'+e.description:'')+(e.contracts&&e.contracts.ace&&LEGAL_EVENT_IDS.indexOf(e.id)>=0?'（顧問契約で被害を軽く）':''),e.type==='negative'?'neg':'');
   });
   w.events=[];
   if(eventQueue.length) showNextEvent();
