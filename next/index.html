@@ -694,6 +694,7 @@ body{font-family:'Segoe UI','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-seri
 .fx-bubble::after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-4px;border:4px solid transparent;border-top-color:var(--brown-dark)}
 .fx-bubble.say{background:#fff;font-weight:600}
 .fx-coin{position:absolute;transform:translate(-50%,-100%);font-size:.8rem;font-weight:900;color:#b45309;text-shadow:0 1px 0 #fff,0 0 3px #fff;white-space:nowrap;animation:fxUp 1.1s ease-out forwards}
+.fx-face.big{font-size:2.4rem}
 .fx-face{position:absolute;transform:translate(-50%,-100%);font-size:1.1rem;animation:fxUp 1.2s ease-out forwards}
 @keyframes fxPop{from{transform:translate(-50%,-100%) scale(.6);opacity:0}to{transform:translate(-50%,-100%) scale(1);opacity:1}}
 @keyframes fxUp{0%{opacity:0;margin-top:4px}15%{opacity:1;margin-top:0}75%{opacity:1}100%{opacity:0;margin-top:-18px}}
@@ -1846,6 +1847,7 @@ var eventQueue=[];
 function showNextEvent(){
   if(eventQueue.length===0) return;
   var evt=eventQueue.shift();
+  if(['expand','req_done','year','regular_new'].indexOf(evt.id)>=0) playMilestone(); // 節目の音
 
   // アニメリセット
   dom.evtAceAnim.className='evt-ace-anim';
@@ -1999,7 +2001,7 @@ var SEASON_DATA={spring:{name:'春',icon:'🌸'},summer:{name:'夏',icon:'☀️
 var state={};
 function initState(){
   state={
-    money:C.INIT_MONEY, week:0, staff:1, popularity:C.INIT_POP, avgQuality:C.INIT_QUALITY,
+    money:C.INIT_MONEY, week:0, staff:1, popularity:C.INIT_POP, avgQuality:C.INIT_QUALITY, expandSys:1, legacyLv:1,
     selectedBean:'brazil',
     inventory:{
       brazil:{raw:1,roasted:0,quality:0},
@@ -2106,8 +2108,11 @@ function fmtDate(week){
 }
 function getSite(){return SITES[state.site||0]}
 function maxStaff(){return getSite().staff}
+// 開店支援の割引のない家賃（移転先の上乗せは含まない）。拡張するほど上がる。
+// 古いセーブで前から上がっていた Lv の分は、前の上乗せ（1,500円）のまま
+function shopRent(){var L=Math.min(state.shopLevel,state.legacyLv||1);return C.RENT+(L-1)*1500+(state.shopLevel-L)*C.RENT_PER_LEVEL}
 function getRent(){
-  var r=C.RENT+(state.shopLevel-1)*C.RENT_PER_LEVEL,add=getSite().rent; // 拡張するほど家賃が上がる
+  var r=shopRent(),add=getSite().rent;
   if(state.week<C.EARLY_RENT_WEEKS) return Math.round(r*C.EARLY_RENT_MULT)+add;
   var t=(state.week-C.EARLY_RENT_WEEKS)/C.EARLY_RENT_RAMP;
   return (t<1?Math.round(r*(C.EARLY_RENT_MULT+(1-C.EARLY_RENT_MULT)*t)):r)+add;
@@ -3388,7 +3393,7 @@ var GUIDE=[
    body:function(){return'準備ができたら、下の「▶ 開店する」。時間が流れ出し、お客さんが来ます。1日3秒、7日で1週。'}},
   {id:'stock',week:1,title:'在庫と仕入れの量',body:function(){return'「今週の営業」に、在庫が何週分あるかが出ます。1袋は50杯分。切れる前に、まとめて焙煎しておこう。'}},
   {id:'price',week:2,title:'1杯の利益',body:function(){return'1杯は450円前後で売れます。ミルクやカップが'+C.BEAN_COST_CUP+'円、豆が10〜30円。残りが利益です。'}},
-  {id:'fixed',week:3,title:'毎週かかるお金',body:function(){var r=C.RENT+(state.shopLevel-1)*C.RENT_PER_LEVEL;return'家賃は最初の半年は半額で、そのあと週'+fmt(r)+'円になります。光熱費は週'+fmt(C.UTILITY)+'円、スタッフは1人週'+fmt(C.STAFF_WAGE)+'円。'}},
+  {id:'fixed',week:3,title:'毎週かかるお金',body:function(){var r=shopRent();return'家賃は最初の半年は半額で、そのあと週'+fmt(r)+'円になります。光熱費は週'+fmt(C.UTILITY)+'円、スタッフは1人週'+fmt(C.STAFF_WAGE)+'円。'}},
   {id:'focus',week:4,title:'今週の取り組み',body:function(){return'店舗タブで1つ選べます。選んだ取り組みは、変えるまで毎週続きます（費用も毎週）。'}},
   {id:'taste',week:5,title:'お客さんの好み',body:function(){return'季節と月ごとの流行で、売れる味が変わります。アドバイスの「流行」に合わせてブレンドを作ろう。'}},
   {id:'recipe',week:6,title:'レシピを保存しよう',body:function(){return'ブレンドをレシピブックに保存すると、年に1回のコーヒー大会に出られます（参加費あり）。'}},
@@ -3431,7 +3436,7 @@ function renderWeekSum(){
   if(cups<dm) h+='<div class="week-warn bad">⚠️ 在庫が来週の見込み客より少なく、品切れになります。<button data-go="coffee">焙煎へ</button></div>';
   else if(wk<1.5) h+='<div class="week-warn">📦 在庫があと'+(Math.round(wk*10)/10)+'週分です。<button data-go="coffee">焙煎へ</button></div>';
   if(state.week>0&&nextMoney<0) h+='<div class="week-warn bad">💸 このままだと来週の終わりに資金がマイナスです。<button data-go="manage">経営へ</button></div>';
-  var fullRent=C.RENT+(state.shopLevel-1)*C.RENT_PER_LEVEL+getSite().rent,rent=getRent();
+  var fullRent=shopRent()+getSite().rent,rent=getRent();
   h+='<div style="font-size:.66rem;color:var(--text-dim)">毎週の費用：家賃 '+fmt(rent)+'円'+(rent<fullRent?'（開店支援のあと '+fmt(fullRent)+'円）':'')+'・光熱 '+fmt(C.UTILITY+charcoalWeekly())+'円'+(state.staff>1?'・スタッフ '+fmt(crewWages())+'円':'')+'</div>';
   dom.weekSum.innerHTML=h;
 }
@@ -3619,6 +3624,14 @@ function getAudio(){if(!soundOn) throw new Error('muted');if(!audioCtx)audioCtx=
 var crackleInt=null;
 function startCrackle(){stopCrackle();crackleInt=setInterval(function(){try{var c=getAudio(),o=c.createOscillator(),g=c.createGain();o.type='square';o.frequency.value=200+Math.random()*600;g.gain.value=.03;g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.05);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.05)}catch(e){}},80+Math.random()*120)}
 function stopCrackle(){if(crackleInt){clearInterval(crackleInt);crackleInt=null}}
+// 短い音を順に鳴らす（notes＝周波数の並び）。週末の黒字は丸い1音、節目は上がる3音
+function playNotes(notes,len,vol,wave){
+  try{var c=getAudio(),t=c.currentTime;notes.forEach(function(f,i){var o=c.createOscillator(),g=c.createGain();
+    o.type=wave||'sine';o.frequency.value=f;g.gain.setValueAtTime(0.0001,t+i*len);g.gain.exponentialRampToValueAtTime(vol,t+i*len+0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+i*len+len*1.6);o.connect(g);g.connect(c.destination);o.start(t+i*len);o.stop(t+i*len+len*1.7)})}catch(e){}
+}
+function playMilestone(){playNotes([523,659,784],0.11,0.08)}
+function playWeekEnd(profit){if(profit>=0) playNotes([659],0.1,0.045);else playNotes([392,330],0.09,0.035,'triangle')}
 function playSE(type){try{var c=getAudio(),o=c.createOscillator(),g=c.createGain();if(type==='good'){o.type='sine';o.frequency.value=880;g.gain.value=.1}else{o.type='sawtooth';o.frequency.value=220;g.gain.value=.08}g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.3);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.3)}catch(e){}}
 
 /* ===========================================
@@ -5549,7 +5562,7 @@ function buildAdvice(){
   }
   if(state.week>=C.EARLY_RENT_WEEKS-4&&state.week<C.EARLY_RENT_WEEKS){
     list.push({pri:55,cls:'',icon:'🏠',tab:null,
-      html:'開店支援の<strong>家賃半額はあと'+(C.EARLY_RENT_WEEKS-state.week)+'週</strong>で終わります。その後は週'+fmt(C.RENT+(state.shopLevel-1)*C.RENT_PER_LEVEL)+'円です。'});
+      html:'開店支援の<strong>家賃半額はあと'+(C.EARLY_RENT_WEEKS-state.week)+'週</strong>で終わります。その後は週'+fmt(shopRent())+'円です。'});
   }
   if(state.compMaxRank<COMP_RANKS.length&&!state.compWonThisYear&&!state.compTriedThisYear&&state.week%C.WEEKS_PER_YEAR>=24){
     if(state.savedRecipes.length>0){
@@ -5764,6 +5777,8 @@ function loadGame(){
     state=JSON.parse(d);
     // マイグレーション
     if(state.week===undefined) state.week=0;
+    // 拡張工事の仕組み（第9回）より前のセーブ：そのとき上がっていた Lv までは、前の家賃の上乗せ（1,500円）のまま
+    if(state.expandSys===undefined){state.expandSys=1;state.legacyLv=state.shopLevel||1}
     if(state.savedRecipes===undefined) state.savedRecipes=[];
     if(state.compMaxRank===undefined) state.compMaxRank=0;
     if(state.compWonThisYear===undefined) state.compWonThisYear=false;
@@ -5986,7 +6001,14 @@ function flowWeekEnd(){
   flowLine('📅 '+dateStr+'　利益 '+(p>=0?'+':'')+fmt(p)+'円 ／ '+fmt(w.served)+'杯 ／ 人気 '+(dp>=0?'+':'')+dp,'week'+(p<0?' neg':''));
   if(w.demand>w.served&&w.served>0) flowLine('😢 品切れで '+fmt(w.demand-w.served)+'人が買えずに帰りました。焙煎を多めに。','neg');
   else if(w.served===0&&w.demand>0) flowLine('😢 売るものがなく、お客さんが帰ってしまいました。焙煎して、メニューに載せよう。','neg');
-  (state._crewNews||[]).forEach(function(t){flowLine(t,'')});state._crewNews=[];
+  // 節目（はじめての販売・黒字・累計の杯数）と、スタッフの成長。節目のある週は節目の音、ふつうの週は小さな1音
+  var ms=state.ms=state.ms||{},big=[];
+  if(w.served>0&&!ms.sale){ms.sale=1;big.push('🎉 はじめてのお客さんに、コーヒーを出せました！')}
+  if(p>0&&!ms.profit){ms.profit=1;big.push('🎉 はじめての黒字！ この調子で店を育てよう')}
+  [1000,10000,50000,100000].forEach(function(n){if(state.totalCustomers>=n&&!(ms['c'+n])){ms['c'+n]=1;big.push('🎉 これまでに出したコーヒーが '+fmt(n)+'杯 になりました')}});
+  big=big.concat(state._crewNews||[]);state._crewNews=[];
+  big.forEach(function(t){flowLine(t,'week')});
+  if(big.length){playMilestone();if(DIO.cv&&DIO.W) fxAt(DIO.W/2,DIO.rows*0.35,'🎉','fx-face big',1800)}else playWeekEnd(p);
   if(w.turned>0) flowLine(w.capBy==='room'?'🪑 満席で約'+fmt(w.turned)+'人が入れませんでした。店を広げると席が増えます（経営タブ）。':'👤 人手が足りず約'+fmt(w.turned)+'人が帰りました。スタッフを雇うと出せる杯数が増えます。','neg');
   if(state.week>0&&state.week%C.WEEKS_PER_YEAR===0) yearReview(); // 年末は振り返りを出して止まる
   updateUI();autoSave();
