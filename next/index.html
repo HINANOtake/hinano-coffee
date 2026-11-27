@@ -715,6 +715,7 @@ body{font-family:'Segoe UI','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-seri
 .flow-lines{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;overflow:hidden;min-height:0}
 .flow-line{font-size:.76rem;color:var(--text);line-height:1.45;animation:fadeIn .3s ease}
 .flow-line.dim{color:var(--text-dim)}
+.crew-gain{display:block;font-size:11px;color:var(--text-dim);margin-top:2px}.crew-gain.good{color:#4a8a3a}
 .crew-pic{width:27px;height:33px;margin:0 auto;image-rendering:pixelated;display:block}
 .flow-line.week{font-weight:700;color:var(--brown);background:#fff;border-radius:8px;padding:4px 8px;border:1px solid var(--cream-dark)}
 .flow-line.neg{color:var(--red)}
@@ -4207,6 +4208,19 @@ function fireCrew(id){
   var d=staffDef(id);state.crew.splice(i,1);state.staff=1+state.crew.length;
   addLog('👤 '+d.name+'さんが店を離れました。「お世話になりました」');updateUI();
 }
+// 雇う前の見込み：先週の様子で、この人がいれば何杯多く出せたか（席の上限まで）と、粗利から週給を引いた差
+function hireGain(id){
+  var lr=state.lastReport;if(!lr||!lr.served) return null;
+  var d=staffDef(id),add=C.SERVE_PER_STAFF*(d.trait==='speed'?1.15:1);
+  var room=Math.max(0,roomSeats()-staffCap());
+  var lost=lr.capBy==='staff'?(lr.turnedAway||0)/C.DAYS_IN_WEEK:0;
+  var cups=Math.round(Math.min(add,room,lost)*C.DAYS_IN_WEEK);
+  var per=lr.revenue/lr.served-C.BEAN_COST_CUP;
+  var gp=d.trait==='smile'?Math.round(lr.revenue*0.02):0;
+  var net=Math.round(cups*per+gp-d.wage);
+  if(cups<=0&&!gp) return {net:-d.wage,text:'先週は人手が足りていたので、増える杯数は見込めません'+(room<=0?'（席がいっぱい）':'')};
+  return {net:net,text:'先週の様子なら 週+'+cups+'杯'+(gp?'・接客で売上+'+fmt(gp)+'円':'')+' → 週給を引いて '+(net>=0?'+':'−')+fmt(Math.abs(net))+'円'};
+}
 function renderStaffPanel(){
   var el=document.getElementById('staffBody');if(!el||!state) return;
   ensureCrew();
@@ -4220,8 +4234,8 @@ function renderStaffPanel(){
   h+='<div class="crew-cap">1日に出せる杯数：<b>'+staffCap()+'</b>（席は'+roomSeats()+'）・人件費 週'+fmt(crewWages())+'円・あと'+Math.max(0,maxStaff()-state.staff)+'人雇える</div>';
   if(state.staff<maxStaff()){
     h+='<div class="crew-cands-title">雇える人（'+Math.max(1,(state.candsWeek||0)+8-state.week)+'週後に入れ替わる）</div>';
-    crewCands().forEach(function(id){var d=staffDef(id),t=STAFF_TRAITS[d.trait];
-      h+='<div class="crew-cand"><span class="crew-icon">'+staffFace(id)+'</span><span class="crew-main"><b>'+d.name+'</b><span class="crew-sub">'+t.icon+t.name+'：'+t.desc+'</span><span class="crew-intro">'+d.intro+'</span></span>'+
+    crewCands().forEach(function(id){var d=staffDef(id),t=STAFF_TRAITS[d.trait],gain=hireGain(id);
+      h+='<div class="crew-cand"><span class="crew-icon">'+staffFace(id)+'</span><span class="crew-main"><b>'+d.name+'</b><span class="crew-sub">'+t.icon+t.name+'：'+t.desc+'</span><span class="crew-intro">'+d.intro+'</span>'+(gain?'<span class="crew-gain'+(gain.net>0?' good':'')+'">'+gain.text+'</span>':'')+'</span>'+
         '<button class="crew-hire" data-hire="'+id+'"'+(state.money<d.wage*2?' disabled':'')+'>雇う<small>週'+fmt(d.wage)+'円</small></button></div>'});
   }
   el.innerHTML=h;
@@ -6282,7 +6296,9 @@ function init(){
   for(var i=0;i<5;i++) smokes.push(document.getElementById('smoke'+i));
   initTitle();
   renderSoundBtn();document.getElementById('btnSound').addEventListener('click',function(){setSound(!soundOn)});
-  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden') autoSave()});
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'){autoSave();
+    // 画面が隠れたら時間を止める（戻ってきたら「▶ 再開」で続ける）
+    if(state&&dom.screenGame&&dom.screenGame.classList.contains('active')&&!FLOW.user&&FLOW.wk){FLOW.user=true;flowRenderPlay();flowLine('⏸ 画面を離れたので止めました。「▶ 再開」で続きから','dim')}}});
 
   dom.btnGameStart.addEventListener('click',startGame);
   dom.btnLoad.addEventListener('click',loadAndStart);
