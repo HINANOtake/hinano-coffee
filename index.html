@@ -702,6 +702,11 @@ body{font-family:'Segoe UI','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-seri
 .flow-feed{flex:1;min-height:56px;overflow:hidden;display:flex;flex-direction:column;gap:6px;padding:8px 12px;background:var(--cream);position:relative}
 .flow-guide{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:2px solid #e9a23b;border-radius:12px;font-size:.8rem;line-height:1.45;cursor:pointer;flex:none}
 .flow-guide b{color:var(--brown)}
+.flow-line .cu{font-weight:800}.flow-line small.up{color:#4a8a3a}.flow-line small.dn{color:#b0563c}
+.fx-bubble.pop{animation:fxPopBig .35s ease-out}
+@keyframes fxPopBig{0%{transform:translate(-50%,-100%) scale(.4)}60%{transform:translate(-50%,-100%) scale(1.25)}100%{transform:translate(-50%,-100%) scale(1)}}
+.flow-guide.move{border-color:#8fb86a}
+.flow-guide .mv-x{flex:none;padding:4px 2px 4px 6px;color:var(--text-dim);font-size:.8rem}
 .flow-guide .go{margin-left:auto;flex:none;padding:6px 10px;border-radius:8px;background:var(--brown);color:#fff;font-weight:700;font-size:.74rem}
 .flow-info{display:flex;flex-wrap:wrap;gap:6px;flex:none}
 .flow-info span{font-size:.72rem;font-weight:700;color:var(--brown);background:#fff;border:1px solid var(--cream-dark);border-radius:999px;padding:3px 10px;cursor:pointer}
@@ -753,6 +758,21 @@ body{font-family:'Segoe UI','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-seri
 .expand-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:.78rem;margin:4px 0 8px}
 .expand-grid dt{color:var(--text-dim)}
 .expand-grid dd{margin:0;font-weight:700;color:var(--brown)}
+.yr-cup{display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px;background:#fdf6ea;border-radius:10px;font-size:.8rem;line-height:1.45}
+.goal-pick{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.goal-pick button{min-height:40px;border-radius:10px;border:2px solid var(--cream-dark);background:#fff;font-family:inherit;font-size:.8rem;font-weight:700;color:var(--text);cursor:pointer}
+.goal-pick button.on{border-color:#4a8a3a;background:#eef7e8}
+.fav-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--cream-dark)}
+.fav-row.off{opacity:.55}.fav-face{flex:none}
+.fav-main{flex:1;min-width:0;display:flex;flex-direction:column;font-size:.78rem}.fav-main small{font-size:.68rem;color:var(--text-dim)}.fav-main .fav-q{color:var(--brown)}
+.fav-load{flex:none;min-height:38px;padding:0 8px;border-radius:9px;border:1px solid var(--cream-dark);background:#fff;font-family:inherit;font-size:.68rem;font-weight:700;line-height:1.2;cursor:pointer;color:var(--text)}
+.fav-empty{font-size:.72rem;color:var(--text-dim);padding:6px 0}
+.upg-title{font-weight:700;font-size:.8rem;margin:12px 0 6px;color:var(--brown)}
+.upg-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--cream-dark)}
+.upg-main{flex:1;min-width:0;display:flex;flex-direction:column;font-size:.78rem}.upg-main small{color:var(--text-dim);font-size:.68rem}
+.upg-buy{flex:none;min-height:36px;padding:0 10px;border-radius:9px;border:none;background:var(--brown);color:#fff;font-family:inherit;font-weight:700;font-size:.74rem;cursor:pointer}
+.upg-buy:disabled{background:var(--cream-dark);color:var(--text-dim);cursor:default}
+.upg-ok{flex:none;font-size:.74rem;color:#4a8a3a;font-weight:700}
 .expand-note{font-size:.72rem;color:var(--text-dim);margin-top:6px;line-height:1.5}
 .expand-cap{font-size:.76rem;margin:6px 0;padding:6px 8px;border-radius:8px;background:#fff5f5;color:var(--red)}
 .auto-roast{font-size:.74rem;line-height:1.5;margin:6px 0;padding:6px 8px;border-radius:8px;background:#fff;border:1px solid var(--cream-dark)}
@@ -793,6 +813,7 @@ body{font-family:'Segoe UI','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-seri
     <button class="btn btn-primary" id="btnLoad" hidden>▶ つづきから</button>
     <button class="btn btn-primary" id="btnGameStart">☕ はじめる</button>
     <button class="btn-title-new" id="btnTitleNew" hidden>はじめから</button>
+    <button class="btn-title-new" id="btnBranch" hidden>🏢 2号店（オフィス街）で始める</button>
   </div>
   <div class="title-links">
     <button data-sheet="howto">📖 遊び方</button>
@@ -1097,6 +1118,10 @@ body{font-family:'Segoe UI','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-seri
 
     <!-- ===== 記録タブ ===== -->
     <div class="tab-page" data-page="record">
+      <div class="panel">
+        <div class="panel-title">☕ 常連の一杯 <small id="favCupsCount"></small></div>
+        <div id="favCupsBody"></div>
+      </div>
       <div class="panel panel-log">
         <div class="panel-title">📝 ログ</div>
         <div class="log-area" id="logArea"><div class="log-entry">☕ Hinano Coffee オープン！まず豆を焙煎しよう！</div></div>
@@ -1583,7 +1608,23 @@ function addXp(amount,reason,silent){
 function nextExpand(){return SHOP_LEVEL_TABLE[state.shopLevel]||null}
 // 店がその Lv だったときの、いまの週の家賃（開店支援の割引も込み）
 function rentAt(lv){var k=state.shopLevel;state.shopLevel=lv;var r=getRent();state.shopLevel=k;return r}
-function roomSeats(){var s=(LEVEL_EFFECTS[state.shopLevel]||LEVEL_EFFECTS[1]).seats;return state.expand?Math.floor(s/2):s}
+function roomSeats(){var s=(LEVEL_EFFECTS[state.shopLevel]||LEVEL_EFFECTS[1]).seats+upgSum('seats');return state.expand?Math.floor(s/2):s}
+// 小改装（相談 第10回 ②）：拡張のあいだに買える設備。Lv3・Lv4 に2つずつ、どちらを先に買うかで弱点（席／人手）への手当てが変わる
+var UPGRADES=[
+  {id:'window', lv:3,icon:'🪟',name:'窓際に席を足す',  desc:'席 1日+4（卓がひとつ増える）',seats:4,cost:160000},
+  {id:'counter',lv:3,icon:'🧺',name:'受け渡し台を延ばす',desc:'出せる杯数 +10%（カウンターが長くなる）',cap:0.10,cost:120000},
+  {id:'sofa',   lv:4,icon:'🛋️',name:'奥にもう1卓',    desc:'席 1日+6',seats:6,cost:360000},
+  {id:'machine',lv:4,icon:'⚙️',name:'2台目のマシン',   desc:'出せる杯数 +10%',cap:0.10,cost:300000}
+];
+function upgSum(k){var t=0,up=(state&&state.upg)||{};UPGRADES.forEach(function(u){if(up[u.id]&&u[k]) t+=u[k]});return t}
+function buyUpgrade(id){
+  var u=UPGRADES.filter(function(x){return x.id===id})[0];if(!u||(state.upg||{})[id]||state.shopLevel<u.lv||state.money<u.cost) return;
+  state.money-=u.cost;state.upg=state.upg||{};state.upg[id]=state.week;
+  addLog('🔨 小改装：'+u.icon+u.name+'（−'+fmt(u.cost)+'円）。'+u.desc,'log-highlight');
+  if(typeof flowLine==='function') flowLine('🔨 '+u.icon+u.name+'ができました。'+u.desc,'week');
+  playMilestone();if(DIO.cv&&DIO.W) fxAt(DIO.W/2,DIO.rows*0.35,'🔨','fx-face big',1500);
+  updateUI();
+}
 // 拡張できるか：理由の文（できるなら ''）
 function expandBlock(){
   var nx=nextExpand();if(!nx) return 'これ以上は広げられません';
@@ -2820,8 +2861,21 @@ function dtPatFr(k,fr,fw,fh,X,Y,w,h){
   var c=DIO.ctx;c.save();c.setTransform(1,0,0,1,Math.round(X),Math.round(Y));c.fillStyle=c.createPattern(cv,'repeat');c.fillRect(0,0,w,h);c.restore();
   return true;
 }
+// 小改装（相談 第10回 ②）：買った設備を配置図に足す。窓際・奥の席は卓と椅子、受け渡し台はカウンターを1マス延ばす、マシンは作業台に1台
+var UPG_CELLS={window:{3:13,4:14,5:17},sofa:{4:4,5:9},machine:{4:11,5:12}};
+var DT_MAP_CACHE={};
+function dtMapFor(lv){
+  var up=state.upg||{},key=lv+':'+Object.keys(up).sort().join(',');
+  if(DT_MAP_CACHE[key]) return DT_MAP_CACHE[key];
+  var m=DT_MAP[lv].map(function(r){return r.split('')});
+  function put(r,c,ch){if(m[r]&&c<m[r].length&&m[r][c]==='・') m[r][c]=ch}
+  ['window','sofa'].forEach(function(id){var c=up[id]&&UPG_CELLS[id][lv];if(c!=null){put(4,c,'椅');put(5,c,'卓');put(6,c,'椅')}});
+  if(up.machine&&UPG_CELLS.machine[lv]!=null) put(0,UPG_CELLS.machine[lv],'機');
+  if(up.counter){var rc=m[2].indexOf('レ');if(rc>=0&&m[2][rc+1]==='・'){m[2][rc]='カ';m[2][rc+1]='レ'}}
+  return DT_MAP_CACHE[key]=m.map(function(r){return r.join('')});
+}
 function dtLayout(){
-  var lv=state.shopLevel||1,map=DT_MAP[Math.max(1,Math.min(5,lv))],cols=map[0].length;
+  var lv=state.shopLevel||1,map=dtMapFor(Math.max(1,Math.min(5,lv))),cols=map[0].length;
   var x0=Math.floor((DIO.W-cols*DT.cw)/2);
   return{tr:dioTier(),map:map,cols:cols,x0:x0,x1:x0+cols*DT.cw,y0:DT.floorY,y1:DT.floorY+8*DT.ch,
     doorX:x0+map[7].indexOf('入')*DT.cw,regC:map[2].indexOf('レ')};
@@ -3237,6 +3291,7 @@ function dtStep(){
         var sl=DIO.seatList;if(sl&&v.item&&!v.lost&&Math.random()<0.5){
           var taken={};DIO.visitors.forEach(function(o){if(o.seat!=null&&(o.ph===7||o.ph===8)) taken[o.seat]=1});
           var free=sl.map(function(s,i){return i}).filter(function(i){return !DIO.seatBusy[i]&&!taken[i]});
+          if(free.length===1&&FLOW.fullWk!==state.week){FLOW.fullWk=state.week;var fs=sl[free[0]];fxAt(fs.x+4,fs.y-6,'🪑 満席！','fx-bubble pop',1400)} // 最後の席が埋まった瞬間（週1回まで）
           if(free.length){v.seat=free[Math.floor(Math.random()*free.length)];v.ph=7;v.sat=true;
             v.wait=Math.round((45+Math.random()*30)/FLOW.speed)}}}}
       else if(v.ph===7){var st=DIO.seatList&&DIO.seatList[v.seat],ty7=st?st.y+15:v.y;
@@ -3434,8 +3489,47 @@ function currentGuide(){
   }
   return null;
 }
+// 今週の一手（相談 第10回 ①）：いちばん効きそうな助言を1つ。押してその板を開いたら、次の週の終わりに結果を1行で返す
+function weeklyMove(){
+  if(!state||state.week<1) return null;
+  var a=buildAdvice().filter(function(x){return x.key&&x.pri>=45})[0];
+  return a||null;
+}
+function moveMetric(m,lr){
+  if(!lr) return null;
+  switch(m.key){
+    case 'staff':return {label:'人手不足で帰った人',v:lr.capBy==='staff'?lr.turnedAway||0:0,unit:'人',good:-1};
+    case 'room':return {label:'満席で入れなかった人',v:lr.capBy==='room'?lr.turnedAway||0:0,unit:'人',good:-1};
+    case 'stock':return {label:'品切れで帰った人',v:Math.max(0,(lr.demand||0)-(lr.served||0)),unit:'人',good:-1};
+    case 'trend':return {label:'流行に合うメニュー',v:lr.trendSold||0,unit:'杯',good:1};
+    case 'seg':var sg=SEGMENTS.filter(function(x){return x.id===m.seg})[0];return {label:(sg?sg.name:'')+'に出た数',v:(lr.segServed||{})[m.seg]||0,unit:'杯',good:1};
+    case 'host':return {label:'売上',v:lr.revenue||0,unit:'円',good:1};
+  }
+  return null;
+}
+function takeMove(m){
+  var mm=moveMetric(m,state.lastReport);
+  state.moveTaken={key:m.key,seg:m.seg,week:state.week,before:mm?mm.v:0,icon:m.icon};
+}
+function moveResultLine(){
+  var t=state.moveTaken;if(!t||state.week<=t.week) return '';
+  state.moveTaken=null;
+  var mm=moveMetric(t,state.lastReport);if(!mm) return '';
+  var better=(mm.v-t.before)*mm.good>0,same=mm.v===t.before;
+  return '📌 先週の一手：'+mm.label+' '+fmt(t.before)+mm.unit+' → '+fmt(mm.v)+mm.unit+(same?'':better?'（よくなった）':'（まだ足りない）');
+}
 function renderGuide(){
   var g=currentGuide();dom.guidePanel.hidden=!g;
+  if(!g&&dom.flowGuide){var mv=weeklyMove();
+    if(mv&&!(state.moveTaken&&state.moveTaken.key===mv.key)&&state.moveHide!==state.week){
+      dom.flowGuide.hidden=false;dom.flowGuide.classList.add('move');
+      dom.flowGuide.innerHTML='<div><b>📌 今週の一手</b><br>'+mv.icon+' '+mv.html+'</div><span class="go">'+(mv.go||'見る')+'</span><span class="mv-x" title="今週は隠す">✕</span>';
+      dom.flowGuide.onGo=function(ev){if(ev&&ev.target&&ev.target.classList.contains('mv-x')){state.moveHide=state.week;renderGuide();return}
+        takeMove(mv);openSheet(mv.tab);renderGuide()};
+    }else{dom.flowGuide.hidden=true;dom.flowGuide.onGo=null}
+    return;
+  }
+  if(dom.flowGuide) dom.flowGuide.classList.remove('move');
   if(dom.flowGuide){dom.flowGuide.hidden=!g;
     if(g){var go=g.done?(g.go||''):'わかった';
       dom.flowGuide.innerHTML='<div><b>📌 '+g.title+'</b><br>'+g.body()+'</div>'+(go?'<span class="go">'+go+'</span>':'');
@@ -3472,7 +3566,7 @@ function updateUI(){
   var month=Math.floor((weekInYear-1)/4)+1;
   var weekInMonth=((weekInYear-1)%4)+1;
   dom.statYear.textContent=year;dom.statMonth.textContent=month;dom.statWeek.textContent=weekInMonth;
-  renderWeekSum();syncStatusH();renderGuide();
+  renderWeekSum();syncStatusH();renderGuide();renderFavCups();
   dom.statMoney.textContent=fmt(state.money);
   dom.statPopularity.textContent=Math.round(state.popularity);
   dom.statQuality.textContent=Math.round(state.avgQuality);
@@ -4085,6 +4179,13 @@ function renderExpand(){
     h+='<button class="btn-action" id="btnExpand"'+(why?' disabled':'')+'><span>🏗️ 拡張工事をする</span><span class="action-cost">'+(why||fmt(nx.cost)+'円')+'</span></button>';
     h+='<div class="expand-note">実績は、黒字の週・PERFECT の焙煎・常連・ヒット商品でたまります。広げると多くの人に知られ、席も増えますが、家賃とスタッフの給料も重くなります。</div>';
   }else h+='<div class="expand-note">店はいちばん大きくなりました。さらに伸ばすなら移転（大型投資）です。</div>';
+  var ups=UPGRADES.filter(function(u){return state.shopLevel>=u.lv||u.lv===(nx&&nx.level)});
+  if(ups.length){
+    h+='<div class="upg-title">🔨 小さな改装（買うと店の中に出ます）</div>';
+    ups.forEach(function(u){var had=(state.upg||{})[u.id]!=null,lock=state.shopLevel<u.lv;
+      h+='<div class="upg-row'+(had?' done':'')+'"><span class="upg-main"><b>'+u.icon+' '+u.name+'</b><small>'+u.desc+'</small></span>'+
+        (had?'<span class="upg-ok">✓ できた</span>':'<button class="upg-buy" data-upg="'+u.id+'"'+(lock||state.money<u.cost?' disabled':'')+'>'+(lock?'Lv.'+u.lv+'から':fmt(u.cost)+'円')+'</button>')+'</div>'});
+  }
   el.innerHTML=h;
 }
 // コーヒータブ「焙煎を任せる」（選んでいる豆）
@@ -4180,6 +4281,7 @@ function staffCap(){
   (state.crew||[]).forEach(function(m){c+=m.role==='host'?C.SERVE_PER_STAFF*C.HOST_SERVE:C.SERVE_PER_STAFF*(1+(staffDef(m.id).trait==='speed'?0.15*crewMult(m):0))});
   if(!state.crew) c=state.staff*C.SERVE_PER_STAFF;
   if(state.trainNow) c*=0.95;
+  c*=1+upgSum('cap');
   return Math.floor(c);
 }
 C.HOST_SERVE=0.5;C.HOST_REV=0.03;
@@ -4261,15 +4363,23 @@ function renderStaffPanel(){
 C.WAVE_MULT=1.35;
 var WAVE_MSG={worker:'近くに新しいオフィスができて、会社員が増えそう',student:'試験期間で、勉強しに来る学生が増えそう',
   neighbor:'商店街のお祭りで、ご近所さんが増えそう',gourmet:'コーヒー雑誌に近所が載って、コーヒー通が来そう'};
+// 相談 第10回 ③：前の月の最終週に「来月は○○が増えそう」と予告し（止めない）、メニューを1枠試す時間をつくる
+function previewWave(silent){
+  var sg=SEGMENTS[Math.floor(Math.random()*SEGMENTS.length)];state.waveNext=sg.id;
+  var lk=Object.keys(sg.likes).map(function(a){return AXIS_NAME[a]}).join('・');
+  if(!silent){addLog('📣 来月は'+sg.icon+sg.name+'が増えそう（'+WAVE_MSG[sg.id]+'）。好みは「'+lk+'」。','log-highlight');
+    pushNews('📣 来月は'+sg.icon+sg.name+'が増えそう。好みは「'+lk+'」。メニューを1枠、試してみる？')}
+}
 function rollWave(silent){
-  var sg=SEGMENTS[Math.floor(Math.random()*SEGMENTS.length)];
+  var sg=SEGMENTS.filter(function(x){return x.id===state.waveNext})[0]||SEGMENTS[Math.floor(Math.random()*SEGMENTS.length)];state.waveNext=null;
   state.wave={seg:sg.id,week:state.week};
   var lk=Object.keys(sg.likes).map(function(a){return AXIS_NAME[a]}).join('・');
   if(!silent){
     addLog('📣 今月は'+sg.icon+sg.name+'が多くなりそう（'+WAVE_MSG[sg.id]+'）。好みは「'+lk+'」。','log-highlight');
-    eventQueue.push({id:'wave',icon:sg.icon,title:'📣 今月は'+sg.icon+sg.name+'が多くなりそう',type:'positive',description:WAVE_MSG[sg.id]+'。好みは「'+lk+'」',effects:{},counterfactual:{},contracts:{}});
+    pushNews('📣 今月は'+sg.icon+sg.name+'が多め（'+WAVE_MSG[sg.id]+'）');
   }
 }
+function pushNews(t){state._news=(state._news||[]).concat([t])}
 
 /* --- 常連の頼まれごと（相談 第9回 ⑥）---
    10〜14週に1件、常連の誰かが「こんな一杯が飲みたい」と頼む。期限4週。店頭メニューで応えられたら、
@@ -4302,15 +4412,13 @@ function updateRequest(silent,menu){
       state.req=null;state.reqNext=state.week+10+Math.floor(Math.random()*5);state.reqDone=(state.reqDone||0)+1;
       if(!silent){
         addLog('💬 '+d.icon+' '+d.name+'の頼みに応えました！「これこれ、こういうのが飲みたかった」（仲よし+20・人気+2・実績+30）','log-highlight');
-        eventQueue.push({id:'req_done',title:'💬 頼みに応えた！',icon:d.icon,type:'positive',face:{regId:d.id,frame:FACE.LAUGH},
-          description:d.name+'「これこれ、こういうのが飲みたかったんだ。ありがとう！」\n仲よし+20・人気+2・実績+30',effects:{},counterfactual:{},contracts:{}});
+        state._crewNews=(state._crewNews||[]).concat(['💬 '+d.name+'の頼みに応えた！「これこれ、こういうのが飲みたかったんだ」（仲よし+20・人気+2・実績+30）']); // 止めずに週末の節目に
       }
       return;
     }
     if(--q.weeksLeft<=0){
       state.req=null;state.reqNext=state.week+10+Math.floor(Math.random()*5);
-      if(!silent){addLog('💬 '+d.name+'「また今度でいいよ。気にしないで」（頼まれごとは期限切れ）','');
-        eventQueue.push({id:'req_miss',title:'💬 '+d.name+'「また今度でいいよ」',icon:d.icon,type:'positive',description:'頼まれごとは期限が過ぎました（罰はありません）',effects:{},counterfactual:{},contracts:{}})}
+      if(!silent) addLog('💬 '+d.name+'「また今度でいいよ。気にしないで」（頼まれごとは期限切れ）','');
     }
     return;
   }
@@ -4319,7 +4427,7 @@ function updateRequest(silent,menu){
   var r2=act[Math.floor(Math.random()*act.length)],d2=getRegData(r2.id);if(!d2) return;
   var tw=0;REQ_TYPES.forEach(function(t){tw+=t.w});var roll=Math.random()*tw,type='taste';
   for(var i=0;i<REQ_TYPES.length;i++){roll-=REQ_TYPES[i].w;if(roll<0){type=REQ_TYPES[i].id;break}}
-  var nq={regId:r2.id,type:type,weeksLeft:4,axes:(d2.likes||['aroma']).slice(0,2),price:520,quality:Math.min(95,Math.round(state.avgQuality/5)*5+10)};
+  var nq={regId:r2.id,since:state.week,type:type,weeksLeft:4,axes:(d2.likes||['aroma']).slice(0,2),price:520,quality:Math.min(95,Math.round(state.avgQuality/5)*5+10)};
   if(reqMet(nq,menu)){ // いまのメニューで応えられる頼みは出さない（別の種類に）
     nq.type=type==='best'?'taste':'best';
     if(reqMet(nq,menu)){state.reqNext=state.week+4;return}
@@ -4327,9 +4435,85 @@ function updateRequest(silent,menu){
   state.req=nq;
   if(!silent){
     addLog('💬 '+d2.icon+' '+d2.name+'から頼まれごと：'+reqText(nq)+'（4週以内に店頭メニューで）','log-highlight');
-    eventQueue.push({id:'req_new',title:'💬 '+d2.name+'からの頼まれごと',icon:d2.icon,type:'positive',face:{regId:d2.id,frame:FACE.SMILE},
-      description:d2.name+'「'+reqText(nq)+'」\n'+REQ_HINT[nq.type]+'（4週以内に店頭メニューで。応えられなくても罰はありません）',effects:{},counterfactual:{},contracts:{}});
+    state._cardNews='💬 '+d2.name+'から頼まれごとが届きました。下の札を押すと読めます';
   }
+}
+
+/* --- 常連の一杯（相談 第10回 ⑤）---
+   常連が好きな味（好みの軸がどれも1.0以上）のブレンドが店頭にあると、その週に気に入る。
+   別々の週に同じ配合を2回気に入ったら「○○さんの一杯」として記録に残る（1人1杯）。記録から配合を呼び出せる */
+function favScore(d,it){
+  if(!it.flavors||!d.likes.every(function(a){return (it.flavors[a]||0)>=1.0})) return -1;
+  var v=0;d.likes.forEach(function(a){v+=it.flavors[a]||0});(d.dislikes||[]).forEach(function(a){v-=(it.flavors[a]||0)*0.7});return v;
+}
+function favCupTick(silent,menu){
+  state.favCups=state.favCups||{};state.favSeen=state.favSeen||{};
+  getActiveRegulars().forEach(function(r){
+    if(state.favCups[r.id]) return;
+    var d=getRegData(r.id);if(!d) return;
+    var best=null,bv=0;
+    menu.forEach(function(it){if(it.type==='single') return;var v=favScore(d,it);if(v>bv){bv=v;best=it}});
+    if(!best) return;
+    var bl=state.blends.filter(function(b){return b.name===best.name})[0];if(!bl) return;
+    var key=BEAN_KEYS.map(function(k){return bl.recipe[k]||0}).join('-'),f=state.favSeen[r.id];
+    if(!f||f.key!==key){state.favSeen[r.id]={key:key,n:1,w:state.week};return}
+    if(f.w===state.week) return;
+    f.n++;f.w=state.week;
+    if(f.n>=2){
+      var ax=d.likes.map(function(a){return AXIS_NAME[a]}).join('と');
+      state.favCups[r.id]={name:bl.name,recipe:JSON.parse(JSON.stringify(bl.recipe)),week:state.week,quote:ax+'がちょうどいい。これがわたしの一杯'};
+      if(!silent){addLog('☕ '+d.icon+' '+d.name+'の一杯が決まりました：「'+bl.name+'」（記録タブ）','log-highlight');
+        state._crewNews=(state._crewNews||[]).concat(['☕ '+d.name+'の一杯は「'+bl.name+'」に決まりました（記録タブの「常連の一杯」）'])}
+    }
+  });
+}
+function renderFavCups(){
+  var el=document.getElementById('favCupsBody');if(!el||!state) return;
+  var fc=state.favCups||{},seen=REGULARS_DATA.filter(function(d){return state.regulars&&state.regulars.unlocked.some(function(x){return x.id===d.id})||fc[d.id]});
+  var n=Object.keys(fc).length;
+  document.getElementById('favCupsCount').textContent=n+'/'+REGULARS_DATA.length;
+  if(!seen.length){el.innerHTML='<div class="fav-empty">常連さんができると、ここに「その人の一杯」が集まります。</div>';return}
+  el.innerHTML=seen.map(function(d){var c=fc[d.id];
+    if(!c) return '<div class="fav-row off"><span class="fav-face">'+faceHtml(d,FACE.NORMAL,36)+'</span><span class="fav-main"><b>'+d.name+'</b><small>まだ決まっていない。好みは「'+d.likes.map(function(a){return AXIS_NAME[a]}).join('・')+'」</small></span></div>';
+    var bk=BEAN_KEYS.filter(function(k){return c.recipe[k]>0}).map(function(k){return BEANS[k].name+c.recipe[k]+'%'}).join('・');
+    return '<div class="fav-row"><span class="fav-face">'+faceHtml(d,FACE.SMILE,36)+'</span><span class="fav-main"><b>'+d.name+'の一杯「'+c.name+'」</b><small>'+bk+'（'+fmtDate(c.week)+'）</small><small class="fav-q">「'+c.quote+'」</small></span>'+
+      '<button class="fav-load" data-fav="'+d.id+'">この配合で<br>作る</button></div>'}).join('')+
+    (seen.length<REGULARS_DATA.length?'<div class="fav-empty">まだ会っていない常連さんが '+(REGULARS_DATA.length-seen.length)+'人</div>':'');
+}
+function loadFavCup(id){
+  var c=(state.favCups||{})[id];if(!c) return;
+  dom.sliderBrazil.value=c.recipe.brazil||0;dom.sliderMocha.value=c.recipe.mocha||0;dom.sliderPanama.value=c.recipe.panama||0;
+  dom.blendName.value=c.name;updateBlendForm();openSheet('coffee');
+  setTimeout(function(){dom.blendName.scrollIntoView({block:'center'})},50);
+}
+
+/* --- 店の小さな場面（相談 第10回 ⑥）---
+   16〜24週に1回、客の組み合わせで店に小さな場面が起きる（同じ場面は年に1回まで）。週の3日目に店で吹き出し、週末に一言。
+   見逃しても損はない（報酬なし） */
+var SCENES=[
+  {id:'rainshare',ok:function(){return state.weatherToday==='rainy'&&getActiveRegulars().length>0},
+    make:function(m){var d=getRegData(pick(getActiveRegulars()).id);return {say:[['学生','雨、やみませんね…'],[d.name,'この豆、いいでしょう']],line:'☔ 雨宿りの学生と'+d.name+'が相席。「'+m+'」の話で盛り上がっていました'}}},
+  {id:'pair',ok:function(){return true},
+    make:function(m){return {say:[['お客さん','同じのを2つ'],['お客さん','また来ようね']],line:'💑 窓際の二人が「'+m+'」を2杯。帰りに「また来ようね」'}}},
+  {id:'kid',ok:function(){return true},
+    make:function(m){return {say:[['子ども','いいにおい！'],['お母さん','大きくなったらね']],line:'👧 ご近所の親子。子どもがカップの香りをかいで「いいにおい！」'}}},
+  {id:'note',ok:function(){return state.popularity>=40},
+    make:function(m){return {say:[['コーヒー通','…ふむ'],['コーヒー通','「'+m+'」、悪くない']],line:'📓 コーヒー通が手帳に何か書いていきました。「'+m+'、悪くない」'}}}
+];
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function sceneTick(silent,menu){
+  if(silent||!menu.length||state.week<(state.sceneNext||14)) return;
+  var yr=Math.floor(state.week/C.WEEKS_PER_YEAR),seen=state.sceneSeen=state.sceneSeen||{};
+  var c=SCENES.filter(function(x){return seen[x.id]!==yr&&x.ok()});if(!c.length){state.sceneNext=state.week+4;return}
+  var sc=pick(c),m=pick(menu).name,o=sc.make(m);seen[sc.id]=yr;
+  state.sceneNow={id:sc.id,say:o.say,line:o.line};state.sceneNext=state.week+16+Math.floor(Math.random()*9);
+  state.scenesSeen=(state.scenesSeen||0)+1;
+}
+function sceneShow(){
+  var sc=state.sceneNow;if(!sc||!DIO.cv) return;
+  var v=DIO.visitors.filter(function(x){return x.ph===8})[0]||DIO.visitors[0],x=v?v.x+4:DIO.W/2,y=v?v.y-8:DIO.rows*0.45;
+  fxAt(x,y,sc.say[0][1],'fx-bubble say',2200);
+  setTimeout(function(){fxAt(x+16,y-2,sc.say[1][1],'fx-bubble say',2200)},1600/FLOW.speed+600);
 }
 
 /* --- 試作の課題（相談 第9回 ⑧）---
@@ -4352,17 +4536,16 @@ function updateTrial(silent){
     return;
   }
   if(state.week<(state.trialNext||10)) return;
-  if(eventQueue.some(function(e){return e.id==='req_new'})){state.trialNext=state.week+2;return} // 頼まれごとと同じ週には出さない
+  if(state.req&&state.req.since===state.week){state.trialNext=state.week+2;return} // 頼まれごとと同じ週には出さない
   var keys=getAvailableBeanKeys().filter(function(k){return state.inventory[k]}),rg=state.roastGreat||{};
   var fresh=keys.filter(function(k){return !(rg[k]>0)}),nt;
   if(fresh.length&&Math.random()<0.6) nt={kind:'new',bean:fresh[Math.floor(Math.random()*fresh.length)]};
   else{var used=keys.filter(function(k){return rg[k]>0});if(!used.length) used=keys;
     nt={kind:Math.random()<0.5?'fire':'perfect',bean:used[Math.floor(Math.random()*used.length)]}}
-  nt.weeksLeft=C.TRIAL_WEEKS;state.trial=nt;
+  nt.weeksLeft=C.TRIAL_WEEKS;nt.since=state.week;state.trial=nt;
   if(!silent){
     addLog('🧪 試作の課題：'+trialText(nt)+'（'+C.TRIAL_WEEKS+'週以内に手焼きで）','log-highlight');
-    eventQueue.push({id:'trial_new',title:'🧪 試作の課題',icon:'🧪',type:'positive',
-      description:trialText(nt)+'\n'+TRIAL_HINT[nt.kind]+'（'+C.TRIAL_WEEKS+'週以内。できなくても罰はありません）',effects:{},counterfactual:{},contracts:{}});
+    state._cardNews='🧪 試作の課題が届きました。下の札を押すと読めます';
   }
 }
 // 手焼きの結果で、試作の課題を満たしたか
@@ -4385,6 +4568,11 @@ function addYearAgg(lr){
   if(state.mo&&state.week-state.mo.w0>=4) state.mo=null; // まとめずに過ぎた月（まとめ送りなど）は捨てる
   var m=state.mo=state.mo||{profit:0,served:0,pop0:state.popularity,neg:0,w0:state.week};
   m.profit+=lr.profit||0;m.served+=lr.served||0;if((lr.profit||0)<0) m.neg++;
+  if(state.wave){m.seg=state.wave.seg;m.segN=(m.segN||0)+((lr.segServed||{})[state.wave.seg]||0)}
+  y.items=y.items||{};y.segs=y.segs||{};var sb=state.lastSalesBreakdown||{},it=state.itemTotals=state.itemTotals||{};
+  for(var nm in sb){y.items[nm]=(y.items[nm]||0)+sb[nm];it[nm]=(it[nm]||0)+sb[nm]}
+  for(var sk in (lr.segServed||{})) y.segs[sk]=(y.segs[sk]||0)+lr.segServed[sk];
+  goalTick(lr);
 }
 // 月末（4週ごと）の短いまとめ。前の4週と比べて、上向きか下向きかを1行で
 function monthLine(){
@@ -4393,7 +4581,39 @@ function monthLine(){
   if(prev!=null){var d=m.profit-prev;t+=(d>=0?'（前の4週より +':'（前の4週より −')+fmt(Math.abs(d))+'円）'}
   t+=' ／ '+fmt(m.served)+'杯 ／ 人気 '+(dp>=0?'+':'')+dp;
   if(m.neg) t+=' ／ 赤字 '+m.neg+'週';
+  var sg=m.seg&&SEGMENTS.filter(function(x){return x.id===m.seg})[0];
+  if(sg) t+=' ／ '+sg.icon+sg.name+'に '+fmt(m.segN||0)+'杯';
+  var g=state.goal;if(g&&!g.done) t+=' ／ 🎯目標 '+Math.min(99,Math.floor(Math.max(0,g.prog)/g.target*100))+'%';
   state.moPrev=m.profit;return t;
+}
+/* --- 年の目標（相談 第10回 ⑨）---
+   年末に、今年いちばん出た一杯を振り返り、来年の目標を2つの候補から1つ選ぶ（選ばなくてもよい）。難しさは今年の約1.1倍 */
+function goalText(g){
+  if(g.type==='cups') return '1年で '+fmt(g.target)+'杯 を出す';
+  if(g.type==='seg'){var sg=SEGMENTS.filter(function(x){return x.id===g.seg})[0];return sg.icon+sg.name+'に 1年で '+fmt(g.target)+'杯'}
+  return '1年の利益 '+fmt(g.target)+'円';
+}
+function goalTick(lr){
+  var g=state.goal;if(!g||g.done) return;
+  g.prog+=g.type==='cups'?(lr.served||0):g.type==='seg'?((lr.segServed||{})[g.seg]||0):(lr.profit||0);
+  if(g.prog>=g.target){g.done=state.week;state.goalsDone=(state.goalsDone||0)+1;addXp(50,'goal',false);
+    addLog('🎯 今年の目標を達成：'+goalText(g)+'（実績+50）','log-highlight');
+    state._crewNews=(state._crewNews||[]).concat(['🎯 今年の目標を達成！ '+goalText(g)+'（実績+50）'])}
+}
+function goalCands(y){
+  var c=[],r10=function(v,u){return Math.max(u,Math.round(v*1.1/u)*u)};
+  c.push({type:'cups',target:r10(y.served||0,10)});
+  var segs=Object.keys(y.segs||{}).filter(function(k){return y.segs[k]>0});
+  if(segs.length){var sk=pick(segs);c.push({type:'seg',seg:sk,target:r10(y.segs[sk],10)})}
+  if(y.profit>0) c.push({type:'profit',target:r10(y.profit,10000)});
+  while(c.length>2) c.splice(Math.floor(Math.random()*c.length),1);
+  return c;
+}
+function setGoal(i){
+  var c=state.goalCands&&state.goalCands[i];if(!c) return;
+  state.goal={type:c.type,seg:c.seg,target:c.target,prog:0,year:Math.floor(state.week/C.WEEKS_PER_YEAR)};
+  addLog('🎯 来年の目標：'+goalText(state.goal),'log-highlight');
+  document.querySelectorAll('[data-goal]').forEach(function(b){b.classList.toggle('on',+b.getAttribute('data-goal')===i)});
 }
 function yearReview(){
   var y=state.yr;if(!y) return;state.yr=null;
@@ -4405,9 +4625,26 @@ function yearReview(){
     '<div><b>'+fmt(y.served)+'杯</b><span>出した杯数</span></div><div><b>Lv.'+y.lv0+' → '+state.shopLevel+'</b><span>店</span></div>'+
     '<div><b>'+y.staff0+' → '+state.staff+'人</b><span>スタッフ（店主を含む）</span></div><div><b>'+y.reg0+' → '+getActiveRegulars().length+'人</b><span>常連</span></div></div>'+
     '<div style="margin-top:8px">いまの評価額 <b>'+fmt(sc)+'円</b>（ランク '+rk+'）'+(nxR?'。'+nxR.r+'ランク（'+fmt(nxR.min/10000)+'万円）まであと '+fmt(nxR.min-sc)+'円':'')+'</div>'+
-    '<div style="margin-top:6px">🎯 来年の目標：'+goal+'</div>'+
+    '<div style="margin-top:6px">🏗️ 次の一歩：'+goal+'</div>'+yearCupHtml(y)+yearGoalHtml(y)+
     (left>0?'<div style="margin-top:6px;color:var(--text-dim)">10年まで、あと'+Math.ceil(left/C.WEEKS_PER_YEAR)+'年</div>':'');
   eventQueue.push({id:'year',icon:'🎍',title:'🎍 '+year+'年目の振り返り',type:'summary',description:'',html:h,effects:{},counterfactual:{},contracts:{}});
+}
+// 今年いちばん出た一杯（その味がいちばん好きな常連の顔つき）
+function yearCupHtml(y){
+  var it=y.items||{},top=Object.keys(it).sort(function(a,b){return it[b]-it[a]})[0];if(!top) return '';
+  var mi=getAllMenuItems().filter(function(x){return x.name===top})[0],fan=null,fv=0;
+  if(mi) getActiveRegulars().forEach(function(r){var d=getRegData(r.id),v=d?favScore(d,mi):-1;if(v>fv){fv=v;fan=d}});
+  return '<div class="yr-cup">'+(fan?faceHtml(fan,FACE.LAUGH,44):'<span style="font-size:30px">☕</span>')+'<div><b>今年いちばん愛された一杯</b><br>「'+top+'」 '+fmt(it[top])+'杯'+(fan?'<br><small>'+fan.name+'「来年もこれをお願い」</small>':'')+'</div></div>';
+}
+function yearGoalHtml(y){
+  var h='',g=state.goal;
+  if(g) h+='<div style="margin-top:8px">🎯 今年の目標「'+goalText(g)+'」：'+(g.done?'<b style="color:#2f855a">達成！</b>':'あと '+fmt(Math.max(0,g.target-g.prog))+(g.type==='profit'?'円':'杯'))+'</div>';
+  state.goal=null;
+  if(C.TOTAL_WEEKS-state.week<C.WEEKS_PER_YEAR/2) return h;
+  state.goalCands=goalCands(y);
+  h+='<div style="margin-top:8px"><b>来年の目標を1つ選ぶ</b>（選ばなくても大丈夫）</div><div class="goal-pick">'+
+    state.goalCands.map(function(c,i){return '<button data-goal="'+i+'">'+goalText(c)+'</button>'}).join('')+'</div>';
+  return h;
 }
 // 大会の焙煎の採点：止めどき70点・混ぜ15点・冷まし15点。判定の幅は通常の中級の豆と同じ（±0.4秒で満点）
 function finishContestRoast(r){
@@ -5081,6 +5318,7 @@ function simulateWeek(silent,focusId){
       addLog('📈 '+msgs[Math.floor(Math.random()*msgs.length)],'log-highlight');
     }
   }
+  if(state.week%4===3) previewWave(silent);
   // --- 常連客システム ---
   var weeklyRegBonus=calcRegularBonus();
   tryAcquireRegular(silent);
@@ -5495,6 +5733,8 @@ function simulateWeek(silent,focusId){
   progressExpand(silent);
   growCrew(silent);
   updateRequest(silent,menu);
+  favCupTick(silent,menu);
+  sceneTick(silent,menu);
   updateTrial(silent);
   addYearAgg(state.lastReport);
   // 年末リセット（48週ごと）
@@ -5559,6 +5799,7 @@ function calcSegmentMix(season){
   if(season==='spring'||season==='summer') m.student+=0.08;
   if(season==='winter') m.neighbor+=0.06;
   if(state.wave&&m[state.wave.seg]!=null) m[state.wave.seg]*=C.WAVE_MULT; // 今月の客層の波
+  if(state.branch) m.worker+=0.2; // 2号店（オフィス街）
   m.gourmet+=Math.max(0,state.shopLevel-1)*0.03+Math.max(0,state.popularity-50)*0.002;
   var t=0;for(var k in m) t+=m[k];
   for(var k2 in m) m[k2]/=t;
@@ -5679,20 +5920,35 @@ function buildAdvice(){
       html:'<strong>資金ショート中！</strong>あと'+(C.CASH_SHORT_GRACE-state.cashShortWeeks)+'週で黒字に戻さないと倒産します。出費を見直しましょう。'});
   }
   if(cups===0){
-    list.push({pri:90,cls:state.week>0?'urgent':'',icon:'🔥',tab:'coffee',go:raw>0?'焙煎する':'仕入れる',
+    list.push({pri:90,key:'stock',cls:state.week>0?'urgent':'',icon:'🔥',tab:'coffee',go:raw>0?'焙煎する':'仕入れる',
       html:'<strong>焙煎済みのコーヒーがありません。</strong>このまま営業すると売上ゼロです。'+(raw>0?'生豆があるので焙煎しましょう。':'まず生豆を仕入れましょう。')});
   }else if(cups<demand){
-    list.push({pri:70,cls:'',icon:'📦',tab:'coffee',go:'焙煎する',
+    list.push({pri:70,key:'stock',cls:'',icon:'📦',tab:'coffee',go:'焙煎する',
       html:'在庫は<strong>'+cups+'杯</strong>、来週の見込み客は<strong>約'+demand+'人</strong>。売り切れに注意しましょう。'});
   }
   if(lr&&lr.capBy==='staff'&&state.staff<maxStaff()&&state.money>C.STAFF_WAGE*4){
-    list.push({pri:60,cls:'',icon:'👤',tab:'manage',go:'雇う',
+    list.push({pri:60,key:'staff',cls:'',icon:'👤',tab:'manage',go:'雇う',
       html:'先週は<strong>人手が足りず、約'+fmt(lr.turnedAway||0)+'人が帰りました。</strong>経営タブで、候補の中からスタッフを雇いましょう（1人で1日'+C.SERVE_PER_STAFF+'杯ほど）。'});
   }
   var nxE=nextExpand();
   if(lr&&lr.capBy==='room'&&nxE&&!state.expand){
-    list.push({pri:58,cls:'',icon:'🏗️',tab:'manage',go:'拡張を見る',
+    list.push({pri:58,key:'room',cls:'',icon:'🏗️',tab:'manage',go:'拡張を見る',
       html:'先週は<strong>満席で約'+fmt(lr.turnedAway||0)+'人が入れませんでした。</strong>店を Lv.'+nxE.level+' に広げると席が1日'+LEVEL_EFFECTS[nxE.level].seats+'に増えます（'+(expandBlock()||'工事費'+fmt(nxE.cost)+'円')+'）。'});
+  }
+  var upS=UPGRADES.filter(function(u){return u.seats&&state.shopLevel>=u.lv&&!(state.upg||{})[u.id]&&state.money>=u.cost*1.3})[0];
+  if(lr&&lr.capBy==='room'&&upS&&!state.expand){
+    list.push({pri:59,key:'room',cls:'',icon:upS.icon,tab:'manage',go:'改装を見る',
+      html:'先週は<strong>満席で約'+fmt(lr.turnedAway||0)+'人が入れませんでした。</strong>小改装「'+upS.name+'」（'+fmt(upS.cost)+'円）で、席が1日+'+upS.seats+'になります。'});
+  }
+  var upC=UPGRADES.filter(function(u){return u.cap&&state.shopLevel>=u.lv&&!(state.upg||{})[u.id]&&state.money>=u.cost*1.3})[0];
+  if(lr&&lr.capBy==='staff'&&upC&&state.staff>=maxStaff()){
+    list.push({pri:61,key:'staff',cls:'',icon:upC.icon,tab:'manage',go:'改装を見る',
+      html:'人手が足りず<strong>約'+fmt(lr.turnedAway||0)+'人が帰りました。</strong>もう雇えないので、小改装「'+upC.name+'」（'+fmt(upC.cost)+'円）で出せる杯数を増やせます。'});
+  }
+  // 満席が先：手の空いた人を接客に回す（相談 第10回 ①）
+  if(lr&&lr.capBy==='room'&&(state.crew||[]).some(function(m){return m.role!=='host'})&&staffCap()-C.SERVE_PER_STAFF*C.HOST_SERVE>=roomSeats()){
+    list.push({pri:57,key:'host',cls:'',icon:'😊',tab:'manage',go:'持ち場へ',
+      html:'席が先にいっぱいで、<strong>スタッフの手が余っています。</strong>経営タブのスタッフで、1人の持ち場を「😊 接客」にすると売上が上がります。'});
   }
   var nx=SITES[(state.site||0)+1];
   if(lr&&lr.capBy==='staff'&&state.staff>=maxStaff()&&nx){
@@ -5702,7 +5958,7 @@ function buildAdvice(){
   var axis=state.weeklyTrendAxis;
   if(active.length>0&&!active.some(function(it){return matchesTrend(it.flavors,axis)})){
     var bb=bestBeanForAxis(axis);
-    list.push({pri:50,cls:'',icon:'📈',tab:'coffee',go:'ブレンドへ',
+    list.push({pri:50,key:'trend',cls:'',icon:'📈',tab:'coffee',go:'ブレンドへ',
       html:'今月の流行は<strong>「'+AXIS_NAME[axis]+'」</strong>。合うメニューがありません。'+(bb?bb+'を多めにしたブレンドで狙えます。':'')});
   }else if(active.length>0){
     list.push({pri:10,cls:'good',icon:'📈',tab:null,
@@ -5717,7 +5973,7 @@ function buildAdvice(){
     if(miss){
       var ax=Object.keys(miss.likes);
       var bb2=bestBeanForAxis(ax[0]);
-      list.push({pri:48,cls:'',icon:miss.icon,tab:'coffee',go:'ブレンドへ',
+      list.push({pri:48,key:'seg',seg:miss.id,cls:'',icon:miss.icon,tab:'coffee',go:'ブレンドへ',
         html:'来週は'+miss.name+'が約<strong>'+Math.round(segMixA[miss.id]*100)+'%</strong>。好みの<strong>「'+ax.map(function(x){return AXIS_NAME[x]}).join('・')+'」</strong>に合うメニューがありません。'+
           (miss.minQuality?'品質'+miss.minQuality+'以上も大事です。':'')+(bb2?bb2+'を使うと狙えます。':'')});
     }
@@ -5922,7 +6178,7 @@ function showScoreScreen(){
   dom.scoreCumulativeProfit.textContent=fmt(state.cumulativeProfit)+'円';
   dom.scoreShopLevel.textContent='Lv.'+state.shopLevel+' ('+state.shopXp+'XP)';
   dom.scoreRegulars.textContent=state.regulars.unlocked.length+'人';
-  if(!state.recorded){state.recorded=true;addRecord({rank:rank,score:m,lv:state.shopLevel,at:Date.now()})}
+  if(!state.recorded){state.recorded=true;addRecord({rank:rank,score:m,lv:state.shopLevel,at:Date.now()});saveClear()}
   showScreen('score');
 }
 
@@ -6020,6 +6276,7 @@ function titleLeave(){
 function titleRender(){
   var sum=hasSave()?saveSummary():null;
   dom.titleSave.hidden=!sum;dom.btnLoad.hidden=!sum;dom.btnTitleNew.hidden=!sum;dom.btnGameStart.hidden=!!sum;
+  var bb=document.getElementById('btnBranch');if(bb) bb.hidden=!getClear();
   if(sum) dom.titleSaveInfo.textContent=sum;
 }
 var TITLE_HOWTO=[
@@ -6058,7 +6315,8 @@ function titleSheetOpen(kind){
 }
 function titleSheetClose(){if(dom.titleSheet){dom.titleSheet.hidden=true;dom.titleSheetBox.innerHTML=''}}
 function initTitle(){
-  dom.btnTitleNew.addEventListener('click',function(){titleSheetOpen('confirmNew')});
+  dom.btnTitleNew.addEventListener('click',function(){pendingMode='';titleSheetOpen('confirmNew')});
+  document.getElementById('btnBranch').addEventListener('click',function(){pendingMode='branch';if(hasSave()) titleSheetOpen('confirmNew');else startGame('branch')});
   dom.screenTitle.addEventListener('click',function(e){var b=e.target.closest('[data-sheet]');if(b){titlePage=0;titleSheetOpen(b.getAttribute('data-sheet'))}});
   dom.titleSheet.addEventListener('click',function(e){
     if(e.target===dom.titleSheet){titleSheetClose();return}
@@ -6070,7 +6328,7 @@ function initTitle(){
     else if(a==='next'){titlePage++;titleSheetOpen('howto')}
     else if(a==='prev'){titlePage--;titleSheetOpen('howto')}
     else if(a==='restore'){if(restoreBackup()){titleSheetClose();titleRender()}}
-    else if(a==='newgame'){titleSheetClose();startGame()}
+    else if(a==='newgame'){titleSheetClose();startGame(pendingMode)}
   });
   titleEnter();
 }
@@ -6115,7 +6373,9 @@ function flowTick(){
   FLOW.say=(FLOW.say||9000)-dt;if(FLOW.say<=0){FLOW.say=7000+Math.random()*7000;flowStaffSay()}
   while(FLOW.ms>=DAY_MS){
     FLOW.ms-=DAY_MS;FLOW.day++;
-    if(FLOW.day===1) flowShowEvents();
+    if(FLOW.day===1){flowShowEvents();if(state._cardNews){flowLine(state._cardNews,'week');state._cardNews=null}
+      (state._news||[]).forEach(function(t){flowLine(t,'week')});state._news=null}
+    if(FLOW.day===3) sceneShow();
     if(FLOW.day>=7){flowWeekEnd();break}
   }
   flowRenderClock();
@@ -6170,8 +6430,12 @@ function flowWeekEnd(){
   var lt='📅 '+dateStr+'｜来客'+state.lastCustomers+'人 利益'+(p>=0?'+':'')+fmt(p)+'円';
   if(bk.length) lt+='｜'+bk.slice(0,2).map(function(nm){return nm+' '+bd[nm]+'杯'}).join(' / ');
   addLog(lt,p>=0?'':'log-negative');
-  flowLine('📅 '+dateStr+'　利益 '+(p>=0?'+':'')+fmt(p)+'円 ／ '+fmt(w.served)+'杯 ／ 人気 '+(dp>=0?'+':'')+dp,'week'+(p<0?' neg':''));
+  var wl=flowLine('','week'+(p<0?' neg':'')),pv=state.prevServed,dv=pv!=null?w.served-pv:null;state.prevServed=w.served;
+  if(wl){wl.innerHTML='📅 '+dateStr+'　利益 '+(p>=0?'+':'')+fmt(p)+'円 ／ <b class="cu">0</b>杯'+(dv!=null&&dv!==0?'<small class="'+(dv>0?'up':'dn')+'">（'+(dv>0?'+':'')+fmt(dv)+'）</small>':'')+' ／ 人気 '+(dp>=0?'+':'')+dp;
+    countUp(wl.querySelector('.cu'),0,w.served,400)}
   if(state.lastReport&&state.lastReport.focusEff) flowLine(state.lastReport.focusEff,'dim');
+  var mrl=moveResultLine();if(mrl) flowLine(mrl,'dim');
+  if(state.sceneNow){flowLine(state.sceneNow.line,'dim');state.sceneNow=null}
   if(w.demand>w.served&&w.served>0) flowLine('😢 品切れで '+fmt(w.demand-w.served)+'人が買えずに帰りました。焙煎を多めに。','neg');
   else if(w.served===0&&w.demand>0) flowLine('😢 売るものがなく、お客さんが帰ってしまいました。焙煎して、メニューに載せよう。','neg');
   // 節目（はじめての販売・黒字・累計の杯数）と、スタッフの成長。節目のある週は節目の音、ふつうの週は小さな1音
@@ -6253,6 +6517,14 @@ function flowLine(text,cls){
   var el=document.createElement('div');el.className='flow-line'+(cls?' '+cls:'');el.textContent=text;
   dom.flowLines.appendChild(el);
   while(dom.flowLines.children.length>8) dom.flowLines.removeChild(dom.flowLines.firstChild);
+  return el;
+}
+// 週末の杯数を数え上げて止める（相談 第10回 ⑦）。×4ではすぐ出す
+function countUp(el,from,to,ms){
+  if(!el) return;
+  if(FLOW.speed>=4||to-from<=1){el.textContent=fmt(to);return}
+  var t0=performance.now();
+  (function step(){var k=Math.min(1,(performance.now()-t0)/ms);el.textContent=fmt(Math.round(from+(to-from)*(1-Math.pow(1-k,3))));if(k<1) requestAnimationFrame(step)})();
 }
 // 日付と所持金：週の途中は、その週の分を日ごとに少しずつ足して見せる
 function flowRenderClock(){
@@ -6298,15 +6570,37 @@ function flowRenderInfo(){
   dom.flowInfo.innerHTML='<span data-go="coffee" class="'+(cups<dm?'warn':'')+'">☕ 在庫 '+fmt(cups)+'杯（約'+wk+'週分）</span>'+
     '<span data-go="coffee" class="'+(menu?'':'warn')+'">🍽️ メニュー '+menu+'品</span>'+
     '<span data-go="home">'+f.icon+' '+f.name+'</span>'+flowGoalChip()+
-    (state.req?'<span data-go="coffee" class="req">💬 '+(getRegData(state.req.regId)||{}).name+'の頼み（あと'+state.req.weeksLeft+'週）</span>':'')+
-    (state.trial?'<span data-go="coffee" class="req">🧪 試作：'+trialText(state.trial)+'（あと'+state.trial.weeksLeft+'週）</span>':'');
+    cardChip();
 }
+// 頼まれごと・試作の札（相談 第10回 ④）：自動では止めず、札は1枚（先に届いたほう）。押すと中身が開く
+function cardChip(){
+  var q=state.req,t=state.trial,c=q&&(!t||(q.since||0)<=(t.since||0))?'req':t?'trial':'';
+  var more=q&&t?' <small>+1</small>':'';
+  if(c==='req') return '<span data-card="req" class="req">💬 '+(getRegData(q.regId)||{}).name+'の頼み（あと'+q.weeksLeft+'週）'+more+'</span>';
+  if(c==='trial') return '<span data-card="trial" class="req">🧪 試作：'+trialText(t)+'（あと'+t.weeksLeft+'週）'+more+'</span>';
+  return '';
+}
+function openCard(c){
+  if(c==='req'&&state.req){var q=state.req,d=getRegData(q.regId);if(!d) return;
+    eventQueue.push({id:'req_card',title:'💬 '+d.name+'からの頼まれごと',icon:d.icon,type:'positive',face:{regId:d.id,frame:FACE.SMILE},
+      description:d.name+'「'+reqText(q)+'」\n'+REQ_HINT[q.type]+'（あと'+q.weeksLeft+'週。店頭メニューで応えます。応えられなくても罰はありません）',effects:{},counterfactual:{},contracts:{}});
+    if(state.trial) eventQueue.push(trialCardEv());
+  }else if(c==='trial'&&state.trial){eventQueue.push(trialCardEv())}
+  showNextEvent();
+}
+function trialCardEv(){var t=state.trial;
+  return {id:'trial_card',title:'🧪 試作の課題',icon:'🧪',type:'positive',
+    description:trialText(t)+'\n'+TRIAL_HINT[t.kind]+'（あと'+t.weeksLeft+'週。コーヒータブで手焼きします。できなくても罰はありません）',effects:{},counterfactual:{},contracts:{}}}
 // 次の目標（店の拡張）を1つだけ
 function flowGoalChip(){
   var nx=nextExpand();if(!nx) return '';
   if(state.expand) return '<span data-go="manage">🏗️ 工事中（あと'+state.expand.weeksLeft+'週）</span>';
-  var why=expandBlock();
-  return '<span data-go="manage" class="'+(why?'':'go')+'">🏗️ '+(why?'Lv.'+nx.level+'まで '+why.replace('必要',''):'Lv.'+nx.level+'に拡張できます')+'</span>';
+  var why=expandBlock(),xl=nx.xpReq-state.shopXp,ml=nx.cost-state.money,t;
+  if(!why) t='Lv.'+nx.level+'に拡張できます';
+  else if(xl>0&&ml<=0) t='Lv.'+nx.level+'：工事費は確保済み。あと実績'+fmt(xl);
+  else if(xl<=0&&ml>0) t='Lv.'+nx.level+'：実績はたまった。あと'+fmt(ml)+'円';
+  else t='Lv.'+nx.level+'まで '+why.replace('必要','');
+  return '<span data-go="manage" class="'+(why?'':'go')+'">🏗️ '+t+'</span>';
 }
 // タブの板
 function openSheet(tab){
@@ -6330,15 +6624,30 @@ function flowReset(){
 /* ===========================================
    ゲーム開始
    =========================================== */
-function startGame(){
+// 2周目（相談 第10回 ⑩）：10年を遊び終えると「2号店（オフィス街）」で始められる。会社員が多く（+20ポイント）、
+// いちばん多く出たブレンドの配合を1つ持ち込める
+var CLEAR_KEY='hinanoCoffeeClear';
+function saveClear(){
+  var it=state.itemTotals||{},best=null,bv=0;
+  state.blends.forEach(function(b){var v=it[b.name]||0;if(v>bv){bv=v;best=b}});
+  var c=getClear()||{n:0};c.n++;if(best) c.sig={name:best.name,recipe:best.recipe};
+  try{localStorage.setItem(CLEAR_KEY,JSON.stringify(c))}catch(e){}
+}
+function getClear(){try{return JSON.parse(localStorage.getItem(CLEAR_KEY)||'null')}catch(e){return null}}
+var pendingMode='';
+function startGame(mode){
+  mode=typeof mode==='string'?mode:'';
   backupSave();
   initState();
+  if(mode==='branch'){var cl=getClear();state.branch=1;
+    if(cl&&cl.sig){var r0=cl.sig.recipe,fl=calcFlavors(r0);state.blends.push({name:cl.sig.name,recipe:JSON.parse(JSON.stringify(r0)),createdWeek:0,basePrice:calcBlendPrice(r0),flavors:fl,tag:getTag(fl),onMenu:true})}}
   dom.logArea.innerHTML='<div class="log-entry">☕ Hinano Coffee オープン！まず豆を焙煎しよう！</div><div class="log-entry">🏠 開店支援：最初の半年（'+C.EARLY_RENT_WEEKS+'週）は家賃が半額です。</div>';
   clearInterval(roastTimer);roastTimer=null;stopCrackle();if(rs) clearTimeout(rs.coolEnd);rs=null;roastCooling=false;dom.screenGame.classList.remove('is-roasting');dom.roasterBody.classList.remove('roasting');smokes.forEach(function(s){s.classList.remove('active')});dom.roastMeter.hidden=true;roastFx.row=0;roastAnimKick();
   dom.roastResult.innerHTML='';dom.roasterOverlay.style.opacity='0';
   dom.btnRoastStart.disabled=false;dom.btnRoastStop.disabled=true;
   dom.bankruptModal.classList.remove('active');dom.cashShortBanner.classList.remove('active');
   renderBeanSelector();selectBean('brazil');renderRoastGear();flowReset();updateUI();updateBlendForm();switchTab('home');showScreen('game');
+  if(state.branch) addLog('🏢 2号店（オフィス街）を開きました。会社員の多い町です。'+(state.blends[0]?'看板ブレンド「'+state.blends[0].name+'」の配合を持ってきました。':''),'log-highlight');
 }
 function loadAndStart(){
   if(loadGame()){
@@ -6437,11 +6746,14 @@ function init(){
   dom.btnPlay=document.getElementById('btnPlay');dom.btnSpeed=document.getElementById('btnSpeed');
   dom.btnPlay.addEventListener('click',flowToggle);dom.btnSpeed.addEventListener('click',flowSpeed);
   document.getElementById('btnSheetClose').addEventListener('click',closeSheet);
-  dom.flowGuide.addEventListener('click',function(){if(dom.flowGuide.onGo) dom.flowGuide.onGo()});
+  dom.flowGuide.addEventListener('click',function(e){if(dom.flowGuide.onGo) dom.flowGuide.onGo(e)});
+  document.getElementById('favCupsBody').addEventListener('click',function(e){var b=e.target.closest('[data-fav]');if(b) loadFavCup(b.getAttribute('data-fav'))});
   window.addEventListener('resize',flowSyncCmdH);
   var _updateUI=updateUI;updateUI=function(){_updateUI();renderExpand();renderStaffPanel();renderAutoRoast();flowRenderClock();flowRenderInfo()};
   document.addEventListener('click',function(e){
     if(e.target.closest('#btnExpand')){startExpand();return}
+    var ub=e.target.closest('[data-upg]');if(ub){buyUpgrade(ub.getAttribute('data-upg'));return}
+    var gb=e.target.closest('[data-goal]');if(gb){setGoal(+gb.getAttribute('data-goal'));return}
     var hb=e.target.closest('[data-hire]');if(hb){hireCrew(hb.getAttribute('data-hire'));return}
     var rb=e.target.closest('[data-role]');if(rb){var rm=(state.crew||[]).filter(function(m){return m.id===rb.getAttribute('data-role')})[0];if(rm) setRole(rm.id,rm.role==='host'?'serve':'host');return}
     var fb=e.target.closest('[data-fire]');if(fb){
@@ -6453,7 +6765,8 @@ function init(){
       addLog(e.target.checked?'🤖 '+(BEANS[state.selectedBean]||SPECIAL_BEANS[state.selectedBean]).name+'のふだんの焙煎を任せました（来週から）。':'🤖 '+(BEANS[state.selectedBean]||SPECIAL_BEANS[state.selectedBean]).name+'の焙煎を、また自分でするようにしました。');updateUI()}
   });
   dom.flowInfo=document.getElementById('flowInfo');
-  dom.flowInfo.addEventListener('click',function(e){var b=e.target.closest('[data-go]');if(b) openSheet(b.getAttribute('data-go'))});
+  dom.flowInfo.addEventListener('click',function(e){var cd=e.target.closest('[data-card]');if(cd){openCard(cd.getAttribute('data-card'));return}
+    var b=e.target.closest('[data-go]');if(b) openSheet(b.getAttribute('data-go'))});
   setInterval(flowTick,100);
   dom.adviceList.addEventListener('click',function(e){
     var m=e.target.closest('.advice-more');if(m){dom.adviceList.querySelectorAll('.advice-hidden').forEach(function(x){x.classList.remove('advice-hidden')});m.remove();return}
