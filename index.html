@@ -3519,6 +3519,9 @@ function currentGuide(){
       if(g.ready&&!g.ready()) continue;
       if(state.week<g.week) return null;
       if(g.week>=10&&state.guideLast&&state.week-state.guideLast<4) return null;
+      // 「わかった」を押さなくても、2週出したら次へ（案内が残って今週の一手が出ないのを防ぐ）
+      var at=state.guideAt=state.guideAt||{};if(at[g.id]==null) at[g.id]=state.week;
+      if(state.week-at[g.id]>=2){seen[g.id]=true;state.guideSeen=seen;state.guideLast=state.week;if(g.week>=10) return null;continue}
       return g;
     }
   }
