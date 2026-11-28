@@ -3500,14 +3500,27 @@ var GUIDE=[
   {id:'focus',week:4,title:'今週の取り組み',body:function(){return'店舗タブで1つ選べます。選んだ取り組みは、変えるまで毎週続きます（費用も毎週）。'}},
   {id:'taste',week:5,title:'お客さんの好み',body:function(){return'季節と月ごとの流行で、売れる味が変わります。アドバイスの「流行」に合わせてブレンドを作ろう。'}},
   {id:'recipe',week:6,title:'レシピを保存しよう',body:function(){return'ブレンドをレシピブックに保存すると、年に1回のコーヒー大会に出られます（参加費あり）。'}},
-  {id:'review',week:7,title:'収支をふり返ろう',body:function(){return'店舗タブの経営レポートで、売上・費用・利益が見られます。赤字の週は、理由も書いてあります。'}}
+  {id:'review',week:7,title:'収支をふり返ろう',body:function(){return'店舗タブの経営レポートで、売上・費用・利益が見られます。赤字の週は、理由も書いてあります。'}},
+  // ここから先は、遊びが広がる順に少しずつ（相談 第11回 ③）。4週に1件まで。もう使った人には出さない
+  {id:'regular',week:10,title:'常連さん',body:function(){return'好きな味のブレンドが店頭にあると、同じお客さんが通ってくれます。記録タブで常連さんの好みが見られます。'}},
+  {id:'reqcard',week:14,ready:function(){return !!(state.req||state.trial)},title:'頼まれごとと試作',body:function(){return'店の下の札（💬・🧪）を押すと中身が開きます。応えると人気と実績が増えます。できなくても罰はありません。'}},
+  {id:'hire',week:18,skip:function(){return state.staff>1},title:'スタッフを雇う',body:function(){return'お客さんが増えて手が回らなくなったら、経営タブ「スタッフ」の候補から雇えます。候補ごとに、増える杯数の見込みが出ます。'},go:'候補を見る',tab:'manage',el:'staffBody',sec:'staff'},
+  {id:'role',week:22,ready:function(){return state.staff>1},title:'持ち場と育成',body:function(){return'スタッフは「提供」か「接客」に回せます。手が余っている週は接客に回すと、売上と人気が少し伸びます。'}},
+  {id:'expand',week:30,skip:function(){return state.shopLevel>=2},title:'店を広げる',body:function(){return'店の左上の Lv のバーに、次の拡張まで何が足りないかが出ます。押すと拡張の欄が開きます。'}},
+  {id:'upgrade',week:34,ready:function(){return state.shopLevel>=3},skip:function(){return Object.keys(state.upg||{}).length>0},title:'小改装',body:function(){return'拡張のあいだに、席や受け渡し台を足せます（経営タブ「店舗」）。買った設備は店の中に出ます。'}}
 ];
 function currentGuide(){
   if(!state||state.guideOff) return null;
   var seen=state.guideSeen||{};
   for(var i=0;i<GUIDE.length;i++){var g=GUIDE[i];
     if(g.done){if(!g.done()) return g}
-    else if(!seen[g.id]){return state.week>=g.week?g:null}
+    else if(!seen[g.id]){
+      if((g.skip&&g.skip())||(g.week>=10&&!g.ready&&state.week>g.week+24)){seen[g.id]=true;state.guideSeen=seen;continue} // 古いセーブで過ぎたものも出さない
+      if(g.ready&&!g.ready()) continue;
+      if(state.week<g.week) return null;
+      if(g.week>=10&&state.guideLast&&state.week-state.guideLast<4) return null;
+      return g;
+    }
   }
   return null;
 }
@@ -3560,15 +3573,16 @@ function renderGuide(){
   }
   if(dom.flowGuide) dom.flowGuide.classList.remove('move');
   if(dom.flowGuide){dom.flowGuide.hidden=!g;
-    if(g){var go=g.done?(g.go||''):'わかった';
-      dom.flowGuide.innerHTML='<div><b>📌 '+g.title+'</b><br>'+g.body()+'</div>'+(go?'<span class="go">'+go+'</span>':'');
-      dom.flowGuide.onGo=function(){if(g.done){if(!g.tab) return;openSheet(g.tab);dom.guideGo.onclick()}else dom.guideGo.onclick()}}}
+    if(g){var go=g.done||g.tab?(g.go||''):'わかった';
+      dom.flowGuide.innerHTML='<div><b>📌 '+g.title+'</b><br>'+g.body()+'</div>'+(go?'<span class="go">'+go+'</span>':'')+(!g.done&&g.tab?'<span class="mv-x" title="閉じる">✕</span>':'');
+      dom.flowGuide.onGo=function(ev){if(ev&&ev.target&&ev.target.classList.contains('mv-x')){state.guideSeen=state.guideSeen||{};state.guideSeen[g.id]=true;state.guideLast=state.week;renderGuide();return}if(g.done||g.tab){if(!g.tab) return;openSheet(g.tab);dom.guideGo.onclick()}else dom.guideGo.onclick()}}}
   if(!g) return;
   dom.guideTitle.textContent='📌 '+g.title;dom.guideBody.textContent=g.body();
-  dom.guideGo.textContent=g.done?(g.go||'わかった'):'わかった';dom.guideGo.hidden=!!(g.done&&!g.go);
+  dom.guideGo.textContent=g.done||g.tab?(g.go||'わかった'):'わかった';dom.guideGo.hidden=!!(g.done&&!g.go);
   dom.guideGo.onclick=function(){
-    if(g.done){switchTab(g.tab);if(g.el){var el=document.getElementById(g.el);if(el){el.scrollIntoView({block:'center'});if(el.focus) el.focus({preventScroll:true})}}}
-    else{state.guideSeen=state.guideSeen||{};state.guideSeen[g.id]=true;renderGuide()}
+    if(g.done||g.tab){if(!g.done){state.guideSeen=state.guideSeen||{};state.guideSeen[g.id]=true;state.guideLast=state.week}
+      if(g.sec) state.mgSec=g.sec;switchTab(g.tab);if(g.sec&&typeof renderMg==='function') renderMg();if(g.el){var el=document.getElementById(g.el);if(el){el.scrollIntoView({block:'center'});if(el.focus) el.focus({preventScroll:true})}}}
+    else{state.guideSeen=state.guideSeen||{};state.guideSeen[g.id]=true;state.guideLast=state.week;renderGuide()}
   };
 }
 function syncStatusH(){var sb=dom.screenGame.querySelector('.status-bar');if(sb&&sb.offsetHeight) document.documentElement.style.setProperty('--status-h',sb.offsetHeight+'px')}
@@ -4698,9 +4712,16 @@ function yearReview(){
     '<div><b>'+fmt(y.served)+'杯</b><span>出した杯数</span></div><div><b>Lv.'+y.lv0+' → '+state.shopLevel+'</b><span>店</span></div>'+
     '<div><b>'+y.staff0+' → '+state.staff+'人</b><span>スタッフ（店主を含む）</span></div><div><b>'+y.reg0+' → '+getActiveRegulars().length+'人</b><span>常連</span></div></div>'+
     '<div style="margin-top:8px">いまの評価額 <b>'+fmt(sc)+'円</b>（ランク '+rk+'）'+(nxR?'。'+nxR.r+'ランク（'+fmt(nxR.min/10000)+'万円）まであと '+fmt(nxR.min-sc)+'円':'')+'</div>'+
-    '<div style="margin-top:6px">🏗️ 次の一歩：'+goal+'</div>'+yearCupHtml(y)+yearGoalHtml(y)+
+    '<div style="margin-top:6px">🏗️ 次の一歩：'+goal+'</div>'+yearNextHtml()+yearCupHtml(y)+yearGoalHtml(y)+
     (left>0?'<div style="margin-top:6px;color:var(--text-dim)">10年まで、あと'+Math.ceil(left/C.WEEKS_PER_YEAR)+'年</div>':'');
   eventQueue.push({id:'year',icon:'🎍',title:'🎍 '+year+'年目の振り返り',type:'summary',description:'',html:h,effects:{},counterfactual:{},contracts:{}});
+}
+// 来年の目玉を1つだけ予告（相談 第11回 ⑥）
+function yearNextHtml(){
+  var u=UNLOCKS.filter(function(x){return x.wk>state.week&&x.wk<=state.week+C.WEEKS_PER_YEAR})[0];
+  if(!u){var left=C.TOTAL_WEEKS-state.week;
+    return left>0&&left<=C.WEEKS_PER_YEAR*2?'<div style="margin-top:6px">🏢 10年を遊び終えると、2号店（オフィス街）で始められます</div>':'';}
+  return '<div style="margin-top:6px">🆕 来年の楽しみ：'+u.t.replace('できるようになりました','できるようになります').replace('出られるようになりました','出られるようになります').replace('結べるようになりました','結べるようになります').replace('出せるようになりました','出せるようになります').replace('挑めるようになりました','挑めるようになります')+'</div>';
 }
 // 今年いちばん出た一杯（その味がいちばん好きな常連の顔つき）
 function yearCupHtml(y){
